@@ -3,67 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexadune - Desert Strategy Engine</title>
+    <title>Hexadune - Desert Territory Game</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100vw; height: 100vh;
             overflow: hidden; background-color: #dcb37b;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none;
         }
+
         #ui-layer {
             position: absolute; top: 20px; left: 20px; z-index: 10;
             pointer-events: none; display: flex; flex-direction: column; gap: 10px;
         }
+
         .panel {
-            background: rgba(255, 255, 255, 0.93); padding: 15px 20px;
-            border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            background: rgba(255, 255, 255, 0.9); padding: 15px 20px;
+            border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border: 2px solid #b88d54; pointer-events: auto;
         }
+
         #game-window { width: 100%; height: 100%; cursor: grab; }
         #game-window:active { cursor: grabbing; }
         #map-container { position: absolute; transform-origin: 0 0; }
+        
         .hex-group { cursor: pointer; }
         .hex-group:hover .hex-polygon { filter: brightness(1.1); stroke: #fff; stroke-width: 3; }
+        
         .hex-polygon { stroke: #b88d54; stroke-width: 2; transition: fill 0.3s, stroke 0.2s; }
         .terrain-sand { fill: #e1c699; }
         .terrain-cactus { fill: #d2b48c; }
         .terrain-tower { fill: #e8cc9b; stroke: #8a6a3d; stroke-width: 4; }
+        
         .owned-p1 { fill: #ff4d4d !important; fill-opacity: 0.65; }
         .owned-p2 { fill: #3399ff !important; fill-opacity: 0.65; }
         .owned-p3 { fill: #00cc66 !important; fill-opacity: 0.65; }
+        
         .hex-text { font-size: 22px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+        
         .player-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: bold; color: white; }
         .p1-bg { background-color: #ff4d4d; }
         .p2-bg { background-color: #3399ff; }
         .p3-bg { background-color: #00cc66; }
+        
         .action-btn {
             width: 100%; margin-top: 5px; padding: 8px; font-weight: bold;
             border: 2px solid #8a6a3d; border-radius: 4px; cursor: pointer; background: #fff;
+            transition: all 0.2s;
         }
+        .action-btn:hover { background: #f5f0e6; }
         .active-mode { background: #8a6a3d !important; color: white; }
+
+        /* --- END GAME MODAL OVERLAYS --- */
+        .endgame-modal {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.85); z-index: 10000;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            color: white; font-family: sans-serif; text-align: center;
+        }
+        .modal-body {
+            background: #2c3e50; padding: 40px 60px; border-radius: 12px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.5); border: 4px solid #fff;
+        }
     </style>
 </head>
 <body>
 
+    <div id="win-screen" class="endgame-modal">
+        <div class="modal-body" style="border-color: #2ecc71;">
+            <h1 style="font-size: 3.5em; color: #2ecc71; margin: 0 0 15px 0;">VICTORY ACHIEVED</h1>
+            <p style="font-size: 1.4em; margin: 0;" id="win-msg">You have conquered the desert space maps!</p>
+            <button class="action-btn active-mode" style="margin-top: 25px; font-size: 1.1em; padding: 12px;" onclick="createNewLobby()">Join New Match Room</button>
+        </div>
+    </div>
+
+    <div id="loss-screen" class="endgame-modal">
+        <div class="modal-body" style="border-color: #e74c3c;">
+            <h1 style="font-size: 3.5em; color: #e74c3c; margin: 0 0 15px 0;">DEFEAT</h1>
+            <p style="font-size: 1.4em; margin: 0;" id="loss-msg">Your balance reached 0 UP and went bankrupt.</p>
+            <button class="action-btn" style="margin-top: 25px; font-size: 1.1em; padding: 12px; background: #e74c3c; color: white; border: none;" onclick="createNewLobby()">Return to Main Lobby</button>
+        </div>
+    </div>
+
     <div id="ui-layer">
         <div class="panel">
             <h2 style="margin: 0; color: #5c4322;">Hexadune</h2>
-            <p style="margin: 2px 0;" id="game-id-display"></p>
-            <p style="margin: 2px 0;" id="player-id-display"></p>
+            <p style="margin: 2px 0; font-size: 0.9em; color: #666;" id="game-id-display">Room Axis: Loading...</p>
+            <p style="margin: 2px 0; font-size: 0.9em; color: #666;" id="player-id-display">Call Sign: Loading...</p>
             <hr style="border: 1px solid #b88d54; margin: 8px 0;">
-            <div id="turn-indicator" style="font-weight: bold; font-size: 1.05em;">Connecting...</div>
-            <div id="currency-display" style="font-weight: bold; margin: 5px 0; color: #2c3e50;">Your Balance: 0 UP</div>
+            <div id="turn-indicator" style="font-weight: bold; font-size: 1.05em; margin-bottom: 5px;">Connecting...</div>
+            <div id="currency-display" style="font-weight: bold; margin: 5px 0; color: #2c3e50; font-size: 1.1em;">Your Balance: 0 UP</div>
             
             <div style="margin-top: 10px;">
-                <label style="font-size: 0.85em; font-weight: bold; color: #555;">TACTICAL COMMAND OPERATION:</label>
+                <label style="font-size: 0.85em; font-weight: bold; color: #555; display: block; margin-bottom: 4px;">TACTICAL COMMANDS:</label>
                 <button id="mode-move" class="action-btn active-mode" onclick="setMode('MOVE')">Expand Footprint (Cost varies)</button>
                 <button id="mode-well" class="action-btn" onclick="setMode('BUILD_OIL_WELL')">Construct Oil Well (Cost: 8 UP)</button>
             </div>
-            <p id="status-log" style="margin-top: 10px; font-size: 0.85em; color: #d35400; font-weight: bold;"></p>
+            <p id="status-log" style="margin-top: 12px; font-size: 0.85em; color: #d35400; font-weight: bold; min-height: 1.2em; margin-bottom: 0;"></p>
         </div>
         
         <div class="panel" id="leaderboard">
-            <h3 style="margin: 0 0 5px 0; color: #5c4322;">Logistics Scoreboard</h3>
+            <h3 style="margin: 0 0 8px 0; color: #5c4322; font-size: 1em; border-bottom: 1px solid #ddd; padding-bottom: 4px;">Scoreboard</h3>
             <div id="leaderboard-scores"></div>
         </div>
     </div>
@@ -76,15 +115,26 @@
 
     <script>
         const HEX_SIZE = 45;
-        const API_URL = 'https://hexadune.onrender.com/v1';
+        // Adjust endpoint back to your rendering host or http://localhost:3000 during local testing
+        const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+            ? 'http://localhost:3000/v1' 
+            : 'https://hexaduneserver.onrender.com/v1'; 
+
         const urlParams = new URLSearchParams(window.location.search);
-        const gameId = urlParams.get('gameId') || 'dune-lobby-standard';
+        let gameId = urlParams.get('gameId');
+        if (!gameId) {
+            gameId = 'dune-lobby-standard';
+            window.history.replaceState(null, '', `?gameId=${gameId}`);
+        }
         
-        let playerId = localStorage.getItem('hexadune_player_id') || 'player-' + Math.random().toString(36).substring(2, 7);
-        localStorage.setItem('hexadune_player_id', playerId);
+        let playerId = localStorage.getItem('hexadune_player_id');
+        if (!playerId) {
+            playerId = 'player-' + Math.random().toString(36).substring(2, 7);
+            localStorage.setItem('hexadune_player_id', playerId);
+        }
 
         document.getElementById('game-id-display').innerText = `Room Axis: ${gameId}`;
-        document.getElementById('player-id-display').innerText = `Your Call Sign: ${playerId}`;
+        document.getElementById('player-id-display').innerText = `Call Sign: ${playerId}`;
         
         let currentCommandMode = 'MOVE'; 
         let tileElements = {}; 
@@ -96,6 +146,11 @@
             currentCommandMode = mode;
             document.getElementById('mode-move').className = mode === 'MOVE' ? 'action-btn active-mode' : 'action-btn';
             document.getElementById('mode-well').className = mode === 'BUILD_OIL_WELL' ? 'action-btn active-mode' : 'action-btn';
+        }
+
+        function createNewLobby() {
+            const nextRoom = 'room-' + Math.random().toString(36).substring(2, 7);
+            window.location.search = `?gameId=${nextRoom}`;
         }
 
         function getDeterministicTerrain(q, r) {
@@ -151,7 +206,7 @@
             let targetAction = currentCommandMode;
             if (targetAction === 'MOVE' && type === 'tower') targetAction = 'CONQUER_TOWER';
 
-            document.getElementById('status-log').innerText = "Processing action cost logic...";
+            document.getElementById('status-log').innerText = "Processing tactical vectors...";
             try {
                 const res = await fetch(`${API_URL}/actions`, {
                     method: 'POST',
@@ -162,18 +217,17 @@
                 if(!data.success) {
                     document.getElementById('status-log').innerText = `🚫 ${data.error}`;
                 } else {
-                    document.getElementById('status-log').innerText = `✨ Transaction Verified!`;
+                    document.getElementById('status-log').innerText = `✨ Verified!`;
                     updateWorldState(data.gameState);
                 }
             } catch (err) {
-                document.getElementById('status-log').innerText = "Server pipeline communication fault.";
+                document.getElementById('status-log').innerText = "Server communication link fault.";
             }
         }
 
         function updateWorldState(state) {
             if (!state) return;
 
-            // Safe fallback evaluation initialization blocks
             const validTiles = state.validTiles || {};
             const activePlayers = state.players || [];
             const playerPoints = state.playerPoints || {};
@@ -181,8 +235,9 @@
             const oilWells = state.oilWells || [];
             const turnOrder = state.turnOrder || [];
             const currentTurnIndex = state.currentTurnIndex !== undefined ? state.currentTurnIndex : 0;
+            const eliminatedPlayers = state.eliminatedPlayers || [];
 
-            if (Object.keys(validTiles).length > 0 && (!mapGenerated || Object.keys(mapData).length === 0)) {
+            if (Object.keys(validTiles).length > 0 && !mapGenerated) {
                 mapData = {};
                 Object.keys(validTiles).forEach(k => {
                     const [q, r] = k.split(',').map(Number);
@@ -192,17 +247,36 @@
                 mapGenerated = true;
             }
 
-            const myPoints = playerPoints[playerId] || 0;
+            // --- END GAME MODAL DISPLAY LOGIC ---
+            if (eliminatedPlayers.includes(playerId)) {
+                document.getElementById('loss-msg').innerText = "Your assets ran dry of Utility Points (UP) capital pools.";
+                document.getElementById('loss-screen').style.display = 'flex';
+            }
+
+            if (state.status && state.status.startsWith('won:')) {
+                const winner = state.status.split(':')[1];
+                if (winner === playerId) {
+                    document.getElementById('win-screen').style.display = 'flex';
+                } else {
+                    document.getElementById('loss-msg').innerText = `Player [${winner}] successfully secured complete dominance over the map grid.`;
+                    document.getElementById('loss-screen').style.display = 'flex';
+                }
+            }
+
+            const myPoints = playerPoints[playerId] !== undefined ? playerPoints[playerId] : 0;
             document.getElementById('currency-display').innerText = `Your Balance: ${myPoints} UP`;
 
             if (turnOrder.length > 0) {
                 const currentTurnPlayer = turnOrder[currentTurnIndex];
-                document.getElementById('turn-indicator').innerHTML = (currentTurnPlayer === playerId) 
-                    ? `<span style="color: #27ae60">Your Turn! Execute Strategy.</span>`
-                    : `Waiting on: <span class="player-badge p${activePlayers.indexOf(currentTurnPlayer)+1}-bg">${currentTurnPlayer}</span>`;
+                if (currentTurnPlayer === playerId) {
+                    document.getElementById('turn-indicator').innerHTML = `<span style="color: #27ae60">Your Turn! Execute Strategy.</span>`;
+                } else {
+                    const pIndex = activePlayers.indexOf(currentTurnPlayer);
+                    document.getElementById('turn-indicator').innerHTML = `Waiting on: <span class="player-badge p${pIndex !== -1 ? pIndex + 1 : 1}-bg">${currentTurnPlayer}</span>`;
+                }
             }
 
-            // Reset overlays safely
+            // Reset tile visual baseline states
             Object.keys(tileElements).forEach(key => {
                 if (mapData[key]) {
                     tileElements[key].className.baseVal = `hex-polygon terrain-${mapData[key].type}`;
@@ -212,27 +286,31 @@
                 }
             });
 
-            // Re-render asset ownership matrix layers
+            // Map owner styles onto polygons
             Object.keys(tileOwnership).forEach(key => {
                 if (tileElements[key]) {
                     const idx = activePlayers.indexOf(tileOwnership[key]);
-                    if (idx !== -1) tileElements[key].classList.add(`owned-p${idx+1}`);
+                    if (idx !== -1) tileElements[key].classList.add(`owned-p${idx + 1}`);
                 }
             });
 
-            // Layer active refinery infrastructure structures
+            // Render Oil Wells
             oilWells.forEach(key => {
                 if(textElements[key]) textElements[key].textContent = '🛢️';
             });
 
+            // Update Ledger UI
             const board = document.getElementById('leaderboard-scores');
             board.innerHTML = '';
             activePlayers.forEach((p, idx) => {
                 const count = Object.values(tileOwnership).filter(id => id === p).length;
-                const balance = playerPoints[p] || 0;
+                const balance = playerPoints[p] !== undefined ? playerPoints[p] : 0;
+                const deadLabel = eliminatedPlayers.includes(p) ? ' <span style="color:#c0392b; font-weight:bold;">(LOST)</span>' : '';
                 board.innerHTML += `
-                    <div style="margin: 5px 0; display:flex; justify-content:space-between;">
-                        <span class="player-badge p${idx+1}-bg">${p}</span>
+                    <div style="margin: 5px 0; display: flex; justify-content: space-between; align-items: center; font-size: 0.9em;">
+                        <div>
+                            <span class="player-badge p${idx + 1}-bg">${p}</span>${deadLabel}
+                        </div>
                         <span><b>${count} hexes</b> (${balance} UP)</span>
                     </div>`;
             });
@@ -241,61 +319,41 @@
         async function fetchStateUpdate() {
             try {
                 const res = await fetch(`${API_URL}/games/${gameId}`);
+                if (!res.ok) return;
                 const data = await res.json();
                 if (data.success && data.gameState) {
                     updateWorldState(data.gameState);
                 }
-            } catch (err) { 
-                console.error("Sync link down:", err); 
-            }
+            } catch (err) { console.error("Sync telemetry error:", err); }
         }
 
         fetchStateUpdate();
-        setInterval(fetchStateUpdate, 600);
+        setInterval(fetchStateUpdate, 1000);
 
-        // --- CAMERA PAN & ZOOM LOGIC (FULLY OPERATIONAL) ---
+        // --- CAMERA PAN AND ZOOM ENGAGEMENT ---
         const gameWindow = document.getElementById('game-window');
         const mapContainer = document.getElementById('map-container');
         let isPointerDown = false, isDraggingMap = false, startX, startY;
-        let currentTranslateX = window.innerWidth / 2, currentTranslateY = window.innerHeight / 2, currentScale = 0.85;
+        let currentTranslateX = window.innerWidth / 2, currentTranslateY = window.innerHeight / 2, currentScale = 0.8;
 
-        function updateTransform() { 
-            mapContainer.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`; 
-        }
+        function updateTransform() { mapContainer.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`; }
         updateTransform();
 
-        gameWindow.addEventListener('mousedown', (e) => { 
-            isPointerDown = true; 
-            isDraggingMap = false; 
-            startX = e.clientX - currentTranslateX; 
-            startY = e.clientY - currentTranslateY; 
-        });
-
+        gameWindow.addEventListener('mousedown', (e) => { isPointerDown = true; isDraggingMap = false; startX = e.clientX - currentTranslateX; startY = e.clientY - currentTranslateY; });
         window.addEventListener('mousemove', (e) => {
             if (!isPointerDown) return;
             if (Math.abs(e.clientX - currentTranslateX - startX) > 4) isDraggingMap = true;
-            if (isDraggingMap) { 
-                currentTranslateX = e.clientX - startX; 
-                currentTranslateY = e.clientY - startY; 
-                updateTransform(); 
-            }
+            if (isDraggingMap) { currentTranslateX = e.clientX - startX; currentTranslateY = e.clientY - startY; updateTransform(); }
         });
-
-        window.addEventListener('mouseup', () => { 
-            isPointerDown = false; 
-        });
-
-        // Mouse scroll wheel scale calculations handler
+        window.addEventListener('mouseup', () => { isPointerDown = false; });
         gameWindow.addEventListener('wheel', (e) => {
             e.preventDefault(); 
             const zoomDirection = e.deltaY < 0 ? 1 : -1;
             const newScale = Math.min(Math.max(0.3, currentScale + (zoomDirection * 0.08)), 3.0);
             const ratio = newScale / currentScale;
-            
             currentTranslateX = e.clientX - (e.clientX - currentTranslateX) * ratio;
             currentTranslateY = e.clientY - (e.clientY - currentTranslateY) * ratio;
             currentScale = newScale;
-            
             updateTransform();
         }, { passive: false });
     </script>

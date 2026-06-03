@@ -84,6 +84,7 @@
         localStorage.setItem('hexadune_player_id', playerId);
 
         document.getElementById('game-id-display').innerText = `Room Axis: ${gameId}`;
+        document.getElementById('player-id-display').innerText = `Your Call Sign: ${playerId}`;
         
         let currentCommandMode = 'MOVE'; 
         let tileElements = {}; 
@@ -170,9 +171,20 @@
         }
 
         function updateWorldState(state) {
-            if (state.validTiles && (!mapGenerated || Object.keys(mapData).length === 0)) {
+            if (!state) return;
+
+            // Safe fallback evaluation initialization blocks
+            const validTiles = state.validTiles || {};
+            const activePlayers = state.players || [];
+            const playerPoints = state.playerPoints || {};
+            const tileOwnership = state.tileOwnership || {};
+            const oilWells = state.oilWells || [];
+            const turnOrder = state.turnOrder || [];
+            const currentTurnIndex = state.currentTurnIndex !== undefined ? state.currentTurnIndex : 0;
+
+            if (Object.keys(validTiles).length > 0 && (!mapGenerated || Object.keys(mapData).length === 0)) {
                 mapData = {};
-                Object.keys(state.validTiles).forEach(k => {
+                Object.keys(validTiles).forEach(k => {
                     const [q, r] = k.split(',').map(Number);
                     mapData[k] = { type: getDeterministicTerrain(q, r) };
                 });
@@ -180,41 +192,44 @@
                 mapGenerated = true;
             }
 
-            const activePlayers = state.players;
-            const myPoints = state.playerPoints[playerId] || 0;
+            const myPoints = playerPoints[playerId] || 0;
             document.getElementById('currency-display').innerText = `Your Balance: ${myPoints} UP`;
 
-            const currentTurnPlayer = state.turnOrder[state.currentTurnIndex];
-            document.getElementById('turn-indicator').innerHTML = (currentTurnPlayer === playerId) 
-                ? `<span style="color: #27ae60">Your Turn! Execute Strategy.</span>`
-                : `Waiting on: <span class="player-badge p${activePlayers.indexOf(currentTurnPlayer)+1}-bg">${currentTurnPlayer}</span>`;
+            if (turnOrder.length > 0) {
+                const currentTurnPlayer = turnOrder[currentTurnIndex];
+                document.getElementById('turn-indicator').innerHTML = (currentTurnPlayer === playerId) 
+                    ? `<span style="color: #27ae60">Your Turn! Execute Strategy.</span>`
+                    : `Waiting on: <span class="player-badge p${activePlayers.indexOf(currentTurnPlayer)+1}-bg">${currentTurnPlayer}</span>`;
+            }
 
-            // Reset overlays
+            // Reset overlays safely
             Object.keys(tileElements).forEach(key => {
-                tileElements[key].className.baseVal = `hex-polygon terrain-${mapData[key].type}`;
-                if(mapData[key].type !== 'cactus' && mapData[key].type !== 'tower') {
-                    textElements[key].textContent = '';
+                if (mapData[key]) {
+                    tileElements[key].className.baseVal = `hex-polygon terrain-${mapData[key].type}`;
+                    if(mapData[key].type !== 'cactus' && mapData[key].type !== 'tower') {
+                        textElements[key].textContent = '';
+                    }
                 }
             });
 
             // Re-render asset ownership matrix layers
-            Object.keys(state.tileOwnership).forEach(key => {
+            Object.keys(tileOwnership).forEach(key => {
                 if (tileElements[key]) {
-                    const idx = activePlayers.indexOf(state.tileOwnership[key]);
+                    const idx = activePlayers.indexOf(tileOwnership[key]);
                     if (idx !== -1) tileElements[key].classList.add(`owned-p${idx+1}`);
                 }
             });
 
             // Layer active refinery infrastructure structures
-            state.oilWells.forEach(key => {
+            oilWells.forEach(key => {
                 if(textElements[key]) textElements[key].textContent = '🛢️';
             });
 
             const board = document.getElementById('leaderboard-scores');
             board.innerHTML = '';
             activePlayers.forEach((p, idx) => {
-                const count = Object.values(state.tileOwnership).filter(id => id === p).length;
-                const balance = state.playerPoints[p] || 0;
+                const count = Object.values(tileOwnership).filter(id => id === p).length;
+                const balance = playerPoints[p] || 0;
                 board.innerHTML += `
                     <div style="margin: 5px 0; display:flex; justify-content:space-between;">
                         <span class="player-badge p${idx+1}-bg">${p}</span>
@@ -227,28 +242,26 @@
             try {
                 const res = await fetch(`${API_URL}/games/${gameId}`);
                 const data = await res.json();
-                if (data.success) updateWorldState(data.gameState);
-            } catch (err) { console.error("Sync link down:", err); }
+                if (data.success && data.gameState) {
+                    updateWorldState(data.gameState);
+                }
+            } catch (err) { 
+                console.error("Sync link down:", err); 
+            }
         }
 
         fetchStateUpdate();
         setInterval(fetchStateUpdate, 600);
 
-        // --- 5. CAMERA PAN & ZOOM LOGIC (RESTORED) ---
+        // --- CAMERA PAN & ZOOM LOGIC (FULLY OPERATIONAL) ---
         const gameWindow = document.getElementById('game-window');
         const mapContainer = document.getElementById('map-container');
         let isPointerDown = false, isDraggingMap = false, startX, startY;
-        
-        // Ensure these track globally across your session window mutations
-        let currentTranslateX = window.innerWidth / 2;
-        let currentTranslateY = window.innerHeight / 2;
-        let currentScale = 0.85; // Default starting viewport zoom scale
+        let currentTranslateX = window.innerWidth / 2, currentTranslateY = window.innerHeight / 2, currentScale = 0.85;
 
         function updateTransform() { 
             mapContainer.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`; 
         }
-        
-        // Initial window position fire
         updateTransform();
 
         gameWindow.addEventListener('mousedown', (e) => { 
@@ -260,9 +273,7 @@
 
         window.addEventListener('mousemove', (e) => {
             if (!isPointerDown) return;
-            if (Math.abs(e.clientX - currentTranslateX - startX) > 4) {
-                isDraggingMap = true;
-            }
+            if (Math.abs(e.clientX - currentTranslateX - startX) > 4) isDraggingMap = true;
             if (isDraggingMap) { 
                 currentTranslateX = e.clientX - startX; 
                 currentTranslateY = e.clientY - startY; 
@@ -274,17 +285,13 @@
             isPointerDown = false; 
         });
 
-        // RESTORED: Mouse scroll wheel scaling intersection matrix calculations
+        // Mouse scroll wheel scale calculations handler
         gameWindow.addEventListener('wheel', (e) => {
-            e.preventDefault(); // Stop default browser page scrolls
-            
+            e.preventDefault(); 
             const zoomDirection = e.deltaY < 0 ? 1 : -1;
-            // Bound target scale caps safely between 0.3x and 3.0x zoom sizes
             const newScale = Math.min(Math.max(0.3, currentScale + (zoomDirection * 0.08)), 3.0);
-            
             const ratio = newScale / currentScale;
             
-            // Adjust translation vectors dynamically to zoom seamlessly directly on mouse position pointer
             currentTranslateX = e.clientX - (e.clientX - currentTranslateX) * ratio;
             currentTranslateY = e.clientY - (e.clientY - currentTranslateY) * ratio;
             currentScale = newScale;

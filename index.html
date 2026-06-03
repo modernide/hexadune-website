@@ -118,7 +118,7 @@
         // Adjust endpoint back to your rendering host or http://localhost:3000 during local testing
         const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
             ? 'http://localhost:3000/v1' 
-            : 'https://hexaduneserver.onrender.com/v1'; 
+            : 'https://hexadune.onrender.com/v1'; 
 
         const urlParams = new URLSearchParams(window.location.search);
         let gameId = urlParams.get('gameId');

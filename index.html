@@ -11,6 +11,18 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none;
         }
 
+        /* --- PRE-GAME JOIN SCREEN OVERLAY --- */
+        #join-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(139, 101, 61, 0.9); z-index: 20000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: white; text-align: center;
+        }
+        .join-body {
+            background: #3e2d1c; padding: 40px 60px; border-radius: 12px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.5); border: 4px solid #b88d54;
+        }
+
         #ui-layer {
             position: absolute; top: 20px; left: 20px; z-index: 10;
             pointer-events: none; display: flex; flex-direction: column; gap: 10px;
@@ -67,6 +79,14 @@
     </style>
 </head>
 <body>
+
+    <div id="join-screen">
+        <div class="join-body">
+            <h1 style="font-size: 3em; color: #e1c699; margin: 0 0 10px 0; letter-spacing: 2px;">HEXADUNE</h1>
+            <p style="font-size: 1.2em; margin: 0 0 25px 0; color: #ddd;">Prepare your strategy before dropping onto the map grid.</p>
+            <button class="action-btn active-mode" style="font-size: 1.2em; padding: 15px 40px; width: auto; border-radius: 30px;" onclick="connectAndJoinSession()">CLICK TO JOIN GAME</button>
+        </div>
+    </div>
 
     <div id="win-screen" class="endgame-modal">
         <div class="modal-body" style="border-color: #2ecc71;">
@@ -203,6 +223,12 @@
         }
 
         async function handleHexClick(q, r, type) {
+            // Cactus spawn protection on the frontend click interceptor 
+            if (type === 'cactus') {
+                document.getElementById('status-log').innerText = "🚫 Cacti structures are impassable obstacles.";
+                return;
+            }
+
             let targetAction = currentCommandMode;
             if (targetAction === 'MOVE' && type === 'tower') targetAction = 'CONQUER_TOWER';
 
@@ -327,8 +353,12 @@
             } catch (err) { console.error("Sync telemetry error:", err); }
         }
 
-        fetchStateUpdate();
-        setInterval(fetchStateUpdate, 1000);
+        // Trigger network sync cycles only after selecting the Join Overlay Button
+        function connectAndJoinSession() {
+            document.getElementById('join-screen').style.display = 'none';
+            fetchStateUpdate();
+            setInterval(fetchStateUpdate, 1000);
+        }
 
         // --- CAMERA PAN AND ZOOM ENGAGEMENT ---
         const gameWindow = document.getElementById('game-window');

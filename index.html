@@ -204,21 +204,18 @@
         const urlParams = new URLSearchParams(window.location.search);
         const GAME_ID = urlParams.get('gameId') || 'global-desert-match';
         
-        // Generate stable anonymous local ID session handles
         let PLAYER_ID = localStorage.getItem('hexadune_player_id');
         if (!PLAYER_ID) {
             PLAYER_ID = 'player_' + Math.random().toString(36).substring(2, 9);
             localStorage.setItem('hexadune_player_id', PLAYER_ID);
         }
 
-        // Removed all local hosting fallback parameters
         const SERVER_URL = 'https://hexadune.onrender.com';
 
         let gameState = null;
         let selectedAction = 'MOVE'; 
         let mapData = {};
 
-        // Graphics Framework variables
         const canvas = document.getElementById('game-canvas');
         const ctx = canvas.getContext('2d');
         const gameWindow = document.getElementById('game-window');
@@ -419,21 +416,23 @@
 
                 drawHexagon(ctx, pixel.x, pixel.y, HEX_SIZE, fillColor, strokeColor, 1);
 
+                // --- EMOJI MAP LABELS RE-IMPLEMENTED ---
                 if (gameState && gameState.oilWells && gameState.oilWells.includes(key)) {
-                    ctx.fillStyle = '#222222';
-                    ctx.font = 'bold 12px Arial';
+                    ctx.font = '16px Arial';
                     ctx.textAlign = 'center';
-                    ctx.fillText('WELL', pixel.x, pixel.y + 4);
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🛢️', pixel.x, pixel.y);
                 } else if (tile.type === 'tower') {
                     ctx.fillStyle = '#ffffff';
                     ctx.font = 'bold 11px Arial';
                     ctx.textAlign = 'center';
-                    ctx.fillText('TOWER', pixel.x, pixel.y + 4);
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('TOWER', pixel.x, pixel.y);
                 } else if (tile.type === 'cactus') {
-                    ctx.fillStyle = '#4e5630';
-                    ctx.font = '10px Arial';
+                    ctx.font = '16px Arial';
                     ctx.textAlign = 'center';
-                    ctx.fillText('CACTUS', pixel.x, pixel.y + 4);
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🌵', pixel.x, pixel.y);
                 }
             });
 

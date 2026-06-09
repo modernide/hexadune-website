@@ -222,12 +222,17 @@
         let mapData = {};      
         let mapGenerated = false;
         let latestServerState = null;
+        let activeHoverTile = null; 
+        let costFetchAbortController = null;
         const tooltip = document.getElementById('cost-tooltip');
 
         function setMode(mode) {
             currentCommandMode = mode;
             document.getElementById('mode-move').className = mode === 'MOVE' ? 'action-btn active-mode' : 'action-btn';
             document.getElementById('mode-well').className = mode === 'BUILD_OIL_WELL' ? 'action-btn active-mode' : 'action-btn';
+            if (activeHoverTile) {
+                triggerServerCostEvaluation(activeHoverTile.q, activeHoverTile.r, activeHoverTile.type);
+            }
         }
 
         function createNewLobby() {
@@ -256,58 +261,31 @@
             ];
         }
 
-        function isAdjacentToTowerLocal(q, r) {
-            if (!latestServerState || !latestServerState.validTiles) return false;
-            const neighbors = getNeighbors(q, r);
-            return neighbors.some(n => {
-                if (!latestServerState.validTiles[`${n.q},${n.r}`]) return false;
-                return getDeterministicTerrain(n.q, n.r) === 'tower';
-            });
-        }
-
-        // --- FIXED DYNAMIC PRICING EVALUATOR FOR LOCAL MOUSE GRAPHICS ---
-        function calculateLocalCost(q, r, type) {
-            if (type === 'cactus') return 'IMPASSABLE';
-            if (!latestServerState) return 'Loading...';
-
-            const targetKey = `${q},${r}`;
-            const tileOwnership = latestServerState.tileOwnership || {};
-            const currentOwner = tileOwnership[targetKey];
-
-            if (currentCommandMode === 'BUILD_OIL_WELL') {
-                if (currentOwner !== playerId) return 'Must Own First';
-                if ((latestServerState.oilWells || []).includes(targetKey)) return 'Already Has Well';
-                return '8 UP';
+        // --- AUTHORITATIVE SINGLE-SOURCE ASYNC REQUEST ROUTER ---
+        async function triggerServerCostEvaluation(q, r, type) {
+            if (type === 'cactus') {
+                tooltip.innerText = 'Cost: IMPASSABLE';
+                return;
             }
 
-            const ownedKeys = Object.keys(tileOwnership).filter(k => tileOwnership[k] === playerId);
-            const isAdjacent = ownedKeys.some(ok => {
-                const [oq, or] = ok.split(',').map(Number);
-                return getNeighbors(oq, or).some(n => n.q === q && n.r === r);
-            });
+            if (costFetchAbortController) costFetchAbortController.abort();
+            costFetchAbortController = new AbortController();
 
-            if (!isAdjacent && ownedKeys.length > 0) return 'Isolated';
+            tooltip.innerText = 'Calculating...';
 
-            let cost = 0;
-            if (!currentOwner) {
-                cost = 2; 
-            } else if (currentOwner === playerId) {
-                cost = 0;
-            } else {
-                cost = 4; 
+            try {
+                const response = await fetch(`${API_URL}/games/${gameId}/cost?playerId=${playerId}&q=${q}&r=${r}&mode=${currentCommandMode}`, {
+                    signal: costFetchAbortController.signal
+                });
+                const data = await response.json();
+                if (data.success) {
+                    tooltip.innerText = `Cost: ${data.cost}`;
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    tooltip.innerText = 'Cost: Error';
+                }
             }
-
-            if (isAdjacentToTowerLocal(q, r) && currentOwner !== playerId) {
-                cost += 3; 
-            }
-
-            // Sync with backend historical capture double index mapping
-            const isTilePreviouslyCaptured = !!(latestServerState.capturedTiles && latestServerState.capturedTiles[targetKey]);
-            if (isTilePreviouslyCaptured && currentOwner !== playerId) {
-                cost *= 2;
-            }
-
-            return `${cost} UP`;
         }
 
         const svgGrid = document.getElementById('hex-grid');
@@ -333,18 +311,22 @@
                 
                 group.addEventListener('click', () => { if (!isDraggingMap) handleHexClick(q, r, cell.type); });
                 
-                // Track dynamic cost updates continuously when hovered
                 group.addEventListener('mouseenter', () => {
+                    activeHoverTile = { q, r, type: cell.type };
                     tooltip.style.display = 'block';
-                    tooltip.innerText = `Cost: ${calculateLocalCost(q, r, cell.type)}`;
+                    triggerServerCostEvaluation(q, r, cell.type);
                 });
                 group.addEventListener('mousemove', (e) => {
                     tooltip.style.left = e.clientX + 'px';
                     tooltip.style.top = e.clientY + 'px';
-                    tooltip.innerText = `Cost: ${calculateLocalCost(q, r, cell.type)}`;
                 });
                 group.addEventListener('mouseleave', () => {
+                    activeHoverTile = null;
                     tooltip.style.display = 'none';
+                    if (costFetchAbortController) {
+                        costFetchAbortController.abort();
+                        costFetchAbortController = null;
+                    }
                 });
 
                 const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
@@ -380,12 +362,19 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ gameId, playerId, action: targetAction, targetCoords: { q, r } }),
                 });
+                
                 const data = await res.json();
-                if(!data.success) {
-                    document.getElementById('status-log').innerText = `🚫 ${data.error}`;
+                
+                // FIXED: Explicit extraction of contextual database validation errors across 4xx and 5xx scopes
+                if(!res.ok || !data.success) {
+                    document.getElementById('status-log').innerText = `🚫 ${data.error || 'Server validation rejection.'}`;
                 } else {
                     document.getElementById('status-log').innerText = `✨ Confirmed!`;
                     updateWorldState(data.gameState);
+                    
+                    if (activeHoverTile) {
+                        triggerServerCostEvaluation(activeHoverTile.q, activeHoverTile.r, activeHoverTile.type);
+                    }
                 }
             } catch (err) {
                 document.getElementById('status-log').innerText = "Server communication link fault.";

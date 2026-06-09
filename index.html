@@ -6,487 +6,350 @@
     <title>Hexadune - Desert Territory Game</title>
     <style>
         body, html {
-            margin: 0;
-            padding: 0;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            background-color: #dcb37b;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            user-select: none;
-        }
-
-        /* Initial Join Screen Overlay */
-        #join-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(139, 101, 61, 0.85);
-            z-index: 100;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            color: #ffffff;
-            text-align: center;
-        }
-
-        #join-screen h1 {
-            font-size: 3.5rem;
-            margin-bottom: 10px;
-            text-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            letter-spacing: 2px;
-        }
-
-        #join-screen p {
-            font-size: 1.2rem;
-            margin-bottom: 30px;
-            opacity: 0.9;
-        }
-
-        .join-btn {
-            background: #b88d54;
-            color: white;
-            border: 3px solid #ffffff;
-            padding: 15px 40px;
-            font-size: 1.5rem;
-            font-weight: bold;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
-            transition: transform 0.2s, background 0.2s;
-        }
-
-        .join-btn:hover {
-            transform: scale(1.05);
-            background: #a37945;
-        }
-
-        /* Defeat Screen Overlay */
-        #defeat-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(40, 30, 20, 0.95);
-            z-index: 99;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            color: #ff6b6b;
-            text-align: center;
-        }
-
-        #defeat-screen h1 {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-        }
-
-        #defeat-screen p {
-            color: #eee;
-            font-size: 1.3rem;
-            max-width: 500px;
-            line-height: 1.6;
+            margin: 0; padding: 0; width: 100vw; height: 100vh;
+            overflow: hidden; background-color: #dcb37b;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none;
         }
 
         #ui-layer {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 10;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            position: absolute; top: 20px; left: 20px; z-index: 10;
+            pointer-events: none; display: flex; flex-direction: column; gap: 10px;
         }
 
         .panel {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border: 2px solid #b88d54;
-            pointer-events: auto;
+            background: rgba(255, 255, 255, 0.9); padding: 15px 20px;
+            border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 2px solid #b88d54; pointer-events: auto;
         }
 
-        #game-window {
-            width: 100%;
-            height: 100%;
-            cursor: grab;
+        #game-window { width: 100%; height: 100%; cursor: grab; }
+        #game-window:active { cursor: grabbing; }
+        #map-container { position: absolute; transform-origin: 0 0; }
+        
+        .hex-group { cursor: pointer; }
+        .hex-group:hover .hex-polygon { filter: brightness(1.1); stroke: #fff; stroke-width: 3; }
+        
+        .hex-polygon { stroke: #b88d54; stroke-width: 2; transition: fill 0.3s, stroke 0.2s; }
+        .terrain-sand { fill: #e1c699; }
+        .terrain-cactus { fill: #d2b48c; }
+        .terrain-tower { fill: #e8cc9b; stroke: #8a6a3d; stroke-width: 4; }
+        
+        .owned-p1 { fill: #ff4d4d !important; fill-opacity: 0.65; }
+        .owned-p2 { fill: #3399ff !important; fill-opacity: 0.65; }
+        .owned-p3 { fill: #00cc66 !important; fill-opacity: 0.65; }
+        
+        .hex-text { font-size: 22px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+        
+        .player-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: bold; color: white; }
+        .p1-bg { background-color: #ff4d4d; }
+        .p2-bg { background-color: #3399ff; }
+        .p3-bg { background-color: #00cc66; }
+        
+        .action-btn {
+            width: 100%; margin-top: 5px; padding: 8px; font-weight: bold;
+            border: 2px solid #8a6a3d; border-radius: 4px; cursor: pointer; background: #fff;
+            transition: all 0.2s;
         }
+        .action-btn:hover { background: #f5f0e6; }
+        .active-mode { background: #8a6a3d !important; color: white; }
 
-        #game-canvas {
-            display: block;
+        /* --- END GAME MODAL OVERLAYS --- */
+        .endgame-modal {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.85); z-index: 10000;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            color: white; font-family: sans-serif; text-align: center;
         }
-
-        .status-item {
-            margin-bottom: 5px;
-            font-size: 14px;
-            color: #4a3b2c;
-        }
-
-        .status-value {
-            font-weight: bold;
-            color: #1a1a1a;
-        }
-
-        .action-panel {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .btn {
-            background: #e6c594;
-            border: 1px solid #b88d54;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            color: #4a3b2c;
-            transition: background 0.2s;
-        }
-
-        .btn:hover {
-            background: #dcb37b;
-        }
-
-        .btn.active {
-            background: #b88d54;
-            color: white;
+        .modal-body {
+            background: #2c3e50; padding: 40px 60px; border-radius: 12px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.5); border: 4px solid #fff;
         }
     </style>
 </head>
 <body>
 
-    <div id="join-screen">
-        <h1>HEXADUNE</h1>
-        <p>Desert Strategy Conquest and Resource Expansion</p>
-        <button class="join-btn" onclick="joinGameSession()">CLICK TO JOIN GAME</button>
+    <div id="win-screen" class="endgame-modal">
+        <div class="modal-body" style="border-color: #2ecc71;">
+            <h1 style="font-size: 3.5em; color: #2ecc71; margin: 0 0 15px 0;">VICTORY ACHIEVED</h1>
+            <p style="font-size: 1.4em; margin: 0;" id="win-msg">You have conquered the desert space maps!</p>
+            <button class="action-btn active-mode" style="margin-top: 25px; font-size: 1.1em; padding: 12px;" onclick="createNewLobby()">Join New Match Room</button>
+        </div>
     </div>
 
-    <div id="defeat-screen">
-        <h1>Defeat</h1>
-        <p>Your base infrastructure has been completely wiped out or your logistical capital has gone bankrupt. You have been eliminated from this match session.</p>
+    <div id="loss-screen" class="endgame-modal">
+        <div class="modal-body" style="border-color: #e74c3c;">
+            <h1 style="font-size: 3.5em; color: #e74c3c; margin: 0 0 15px 0;">DEFEAT</h1>
+            <p style="font-size: 1.4em; margin: 0;" id="loss-msg">Your balance reached 0 UP and went bankrupt.</p>
+            <button class="action-btn" style="margin-top: 25px; font-size: 1.1em; padding: 12px; background: #e74c3c; color: white; border: none;" onclick="createNewLobby()">Return to Main Lobby</button>
+        </div>
     </div>
 
     <div id="ui-layer">
         <div class="panel">
-            <div class="status-item">Game ID: <span id="val-game-id" class="status-value">Loading...</span></div>
-            <div class="status-item">Player Profile: <span id="val-player-id" class="status-value">...</span></div>
-            <div class="status-item">Utility Points (UP): <span id="val-points" class="status-value">0</span></div>
-            <div class="status-item">Current Turn: <span id="val-turn" class="status-value">...</span></div>
-            <div class="status-item">Match Status: <span id="val-status" class="status-value">Active</span></div>
-        </div>
-
-        <div class="panel">
-            <div style="font-weight: bold; margin-bottom: 8px; color: #4a3b2c;">Command Directives</div>
-            <div class="action-panel">
-                <button id="btn-move" class="btn active" onclick="setActionType('MOVE')">Claim / Move</button>
-                <button id="btn-well" class="btn" onclick="setActionType('BUILD_OIL_WELL')">Build Oil Well (Cost: 8 UP)</button>
-                <button id="btn-tower" class="btn" onclick="setActionType('CONQUER_TOWER')">Conquer Tower</button>
+            <h2 style="margin: 0; color: #5c4322;">Hexadune</h2>
+            <p style="margin: 2px 0; font-size: 0.9em; color: #666;" id="game-id-display">Room Axis: Loading...</p>
+            <p style="margin: 2px 0; font-size: 0.9em; color: #666;" id="player-id-display">Call Sign: Loading...</p>
+            <hr style="border: 1px solid #b88d54; margin: 8px 0;">
+            <div id="turn-indicator" style="font-weight: bold; font-size: 1.05em; margin-bottom: 5px;">Connecting...</div>
+            <div id="currency-display" style="font-weight: bold; margin: 5px 0; color: #2c3e50; font-size: 1.1em;">Your Balance: 0 UP</div>
+            
+            <div style="margin-top: 10px;">
+                <label style="font-size: 0.85em; font-weight: bold; color: #555; display: block; margin-bottom: 4px;">TACTICAL COMMANDS:</label>
+                <button id="mode-move" class="action-btn active-mode" onclick="setMode('MOVE')">Expand Footprint (Cost varies)</button>
+                <button id="mode-well" class="action-btn" onclick="setMode('BUILD_OIL_WELL')">Construct Oil Well (Cost: 8 UP)</button>
             </div>
+            <p id="status-log" style="margin-top: 12px; font-size: 0.85em; color: #d35400; font-weight: bold; min-height: 1.2em; margin-bottom: 0;"></p>
+        </div>
+        
+        <div class="panel" id="leaderboard">
+            <h3 style="margin: 0 0 8px 0; color: #5c4322; font-size: 1em; border-bottom: 1px solid #ddd; padding-bottom: 4px;">Scoreboard</h3>
+            <div id="leaderboard-scores"></div>
         </div>
     </div>
 
     <div id="game-window">
-        <canvas id="game-canvas"></canvas>
+        <div id="map-container">
+            <svg id="hex-grid" style="overflow: visible;"></svg>
+        </div>
     </div>
 
     <script>
-        // --- 1. CONFIGURATION & STATE SYSTEM ---
+        const HEX_SIZE = 45;
+        // Adjust endpoint back to your rendering host or http://localhost:3000 during local testing
+        const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+            ? 'http://localhost:3000/v1' 
+            : 'https://hexadune.onrender.com/v1'; 
+
         const urlParams = new URLSearchParams(window.location.search);
-        const GAME_ID = urlParams.get('gameId') || 'global-desert-match';
+        let gameId = urlParams.get('gameId');
+        if (!gameId) {
+            gameId = 'dune-lobby-standard';
+            window.history.replaceState(null, '', `?gameId=${gameId}`);
+        }
         
-        let PLAYER_ID = localStorage.getItem('hexadune_player_id');
-        if (!PLAYER_ID) {
-            PLAYER_ID = 'player_' + Math.random().toString(36).substring(2, 9);
-            localStorage.setItem('hexadune_player_id', PLAYER_ID);
+        let playerId = localStorage.getItem('hexadune_player_id');
+        if (!playerId) {
+            playerId = 'player-' + Math.random().toString(36).substring(2, 7);
+            localStorage.setItem('hexadune_player_id', playerId);
         }
 
-        const SERVER_URL = 'https://hexadune.onrender.com';
+        document.getElementById('game-id-display').innerText = `Room Axis: ${gameId}`;
+        document.getElementById('player-id-display').innerText = `Call Sign: ${playerId}`;
+        
+        let currentCommandMode = 'MOVE'; 
+        let tileElements = {}; 
+        let textElements = {};
+        let mapData = {};      
+        let mapGenerated = false;
 
-        let gameState = null;
-        let selectedAction = 'MOVE'; 
-        let mapData = {};
-
-        const canvas = document.getElementById('game-canvas');
-        const ctx = canvas.getContext('2d');
-        const gameWindow = document.getElementById('game-window');
-
-        const HEX_SIZE = 32; 
-        let currentScale = 1.0;
-        let currentTranslateX = window.innerWidth / 2;
-        let currentTranslateY = window.innerHeight / 2;
-
-        let isPointerDown = false;
-        let isDraggingMap = false;
-        let startX, startY;
-
-        function setActionType(type) {
-            selectedAction = type;
-            document.querySelectorAll('.action-panel .btn').forEach(b => b.classList.remove('active'));
-            if(type === 'MOVE') document.getElementById('btn-move').classList.add('active');
-            if(type === 'BUILD_OIL_WELL') document.getElementById('btn-well').classList.add('active');
-            if(type === 'CONQUER_TOWER') document.getElementById('btn-tower').classList.add('active');
+        function setMode(mode) {
+            currentCommandMode = mode;
+            document.getElementById('mode-move').className = mode === 'MOVE' ? 'action-btn active-mode' : 'action-btn';
+            document.getElementById('mode-well').className = mode === 'BUILD_OIL_WELL' ? 'action-btn active-mode' : 'action-btn';
         }
 
-        // --- 2. JOIN MATCH HOOK ---
-        function joinGameSession() {
-            document.getElementById('join-screen').style.display = 'none';
-            syncGameStateWithServer();
-            setInterval(syncGameStateWithServer, 3000);
+        function createNewLobby() {
+            const nextRoom = 'room-' + Math.random().toString(36).substring(2, 7);
+            window.location.search = `?gameId=${nextRoom}`;
         }
 
-        // --- 3. SERVER SYNCHRONIZATION PIPELINE ---
-        async function syncGameStateWithServer() {
-            try {
-                const response = await fetch(`${SERVER_URL}/v1/games/${GAME_ID}`);
-                const data = await response.json();
-                if (data.success && data.gameState) {
-                    processIncomingState(data.gameState);
-                }
-            } catch (err) {
-                console.error("Failed standard game state pipeline fetch request:", err);
-            }
-        }
-
-        async function transmitActionToServer(q, r) {
-            if (mapData[`${q},${r}`] && mapData[`${q},${r}`].type === 'cactus') {
-                console.warn("Local Action Blocked: Cannot claim or occupy an impassable rocky cactus terrain tile.");
-                return;
-            }
-
-            try {
-                const response = await fetch(`${SERVER_URL}/v1/actions`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        gameId: GAME_ID,
-                        playerId: PLAYER_ID,
-                        action: selectedAction,
-                        targetCoords: { q, r }
-                    })
-                });
-                const data = await response.json();
-                if (!data.success) {
-                    alert(data.error);
-                } else if (data.gameState) {
-                    processIncomingState(data.gameState);
-                }
-            } catch (err) {
-                console.error("Failed transmitting action directive to server layer:", err);
-            }
-        }
-
-        function processIncomingState(serverState) {
-            gameState = serverState;
-            
-            if (gameState.eliminatedPlayers && gameState.eliminatedPlayers.includes(PLAYER_ID)) {
-                document.getElementById('defeat-screen').style.display = 'flex';
-                return;
-            }
-
-            document.getElementById('val-game-id').innerText = gameState.gameId;
-            document.getElementById('val-player-id').innerText = PLAYER_ID;
-            document.getElementById('val-points').innerText = gameState.playerPoints[PLAYER_ID] || 0;
-            
-            const turnPlayer = gameState.turnOrder[gameState.currentTurnIndex];
-            document.getElementById('val-turn').innerText = turnPlayer === PLAYER_ID ? "Your Turn" : turnPlayer;
-            document.getElementById('val-status').innerText = gameState.status;
-
-            if (gameState.validTiles) {
-                buildVisualGridFromServer(gameState.validTiles);
-            }
-            requestAnimationFrame(drawScene);
-        }
-
-        // --- 4. ENGINE MATH GENERATOR ---
         function getDeterministicTerrain(q, r) {
             let seedOffset = 0;
-            for (let i = 0; i < GAME_ID.length; i++) {
-                seedOffset += GAME_ID.charCodeAt(i) * (i + 1);
-            }
+            for (let i = 0; i < gameId.length; i++) seedOffset += gameId.charCodeAt(i) * (i + 1);
             let dot1 = (q * 12.9898) + (r * 78.233) + (seedOffset * 0.123);
             let dot2 = (q * 45.1312) + (r * 23.7198) - (seedOffset * 0.456);
             let hash = Math.sin(dot1) * Math.cos(dot2) * 43758.5453123;
-            let val = hash - Math.floor(hash);
-            if (val < 0.08) return 'tower';
-            if (val < 0.20) return 'cactus'; 
-            return 'sand';
+            const rand = hash - Math.floor(hash);
+            return rand < 0.08 ? 'tower' : rand < 0.20 ? 'cactus' : 'sand';
         }
 
-        let mapGenerated = false;
-        function buildVisualGridFromServer(validTiles) {
-            if (mapGenerated) return; 
-            mapGenerated = true;
-            mapData = {};
-            Object.keys(validTiles).forEach(key => {
-                const [q, r] = key.split(',').map(Number);
-                const type = getDeterministicTerrain(q, r); 
-                mapData[key] = { type };
-            });
+        const svgGrid = document.getElementById('hex-grid');
+        const hexPoints = [];
+        for (let i = 0; i < 6; i++) {
+            const angle = Math.PI / 180 * (60 * i - 30);
+            hexPoints.push(`${HEX_SIZE * Math.cos(angle)},${HEX_SIZE * Math.sin(angle)}`);
         }
+        const polygonPoints = hexPoints.join(' ');
 
-        function hexToPixel(q, r) {
-            const x = HEX_SIZE * (Math.sqrt(3) * q + Math.sqrt(3)/2 * r);
-            const y = HEX_SIZE * (3/2 * r);
-            return { x, y };
-        }
-
-        function pixelToHex(x, y) {
-            const q = (Math.sqrt(3)/3 * x - 1/3 * y) / HEX_SIZE;
-            const r = (2/3 * y) / HEX_SIZE;
-            return hexRound(q, r);
-        }
-
-        function hexRound(q, r) {
-            let s = -q - r;
-            let qi = Math.round(q);
-            let ri = Math.round(r);
-            let si = Math.round(s);
-            const q_diff = Math.abs(qi - q);
-            const r_diff = Math.abs(ri - r);
-            const s_diff = Math.abs(si - s);
-            if (q_diff > r_diff && q_diff > s_diff) {
-                qi = -ri - si;
-            } else if (r_diff > s_diff) {
-                ri = -qi - si;
-            }
-            return { q: qi, r: ri };
-        }
-
-        // --- 5. GRAPHICS ENGINE DRAWING SYSTEM ---
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            requestAnimationFrame(drawScene);
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        function drawHexagon(ctx, x, y, size, fill, stroke, width=1) {
-            ctx.beginPath();
-            for (let i = 0; i < 6; i++) {
-                const angle = (Math.PI / 3) * i + (Math.PI / 6); 
-                ctx.lineTo(x + size * Math.cos(angle), y + size * Math.sin(angle));
-            }
-            ctx.closePath();
-            ctx.fillStyle = fill;
-            ctx.fill();
-            ctx.strokeStyle = stroke;
-            ctx.lineWidth = width;
-            ctx.stroke();
-        }
-
-        function drawScene() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            ctx.translate(currentTranslateX, currentTranslateY);
-            ctx.scale(currentScale, currentScale);
+        function buildVisualGrid() {
+            svgGrid.innerHTML = '';
+            tileElements = {}; textElements = {};
 
             Object.keys(mapData).forEach(key => {
                 const [q, r] = key.split(',').map(Number);
-                const tile = mapData[key];
-                const pixel = hexToPixel(q, r);
+                const x = HEX_SIZE * Math.sqrt(3) * (q + r / 2);
+                const y = HEX_SIZE * 3 / 2 * r;
+                const cell = mapData[key];
 
-                let fillColor = '#e4bc8c'; 
-                let strokeColor = '#cda373';
+                const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                group.setAttribute('transform', `translate(${x}, ${y})`);
+                group.addEventListener('click', () => { if (!isDraggingMap) handleHexClick(q, r, cell.type); });
 
-                if (tile.type === 'cactus') {
-                    fillColor = '#a8b082'; 
-                } else if (tile.type === 'tower') {
-                    fillColor = '#9e8b78'; 
+                const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                polygon.setAttribute('points', polygonPoints);
+                polygon.classList.add('hex-polygon', `terrain-${cell.type}`);
+                group.appendChild(polygon);
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.classList.add('hex-text');
+                if (cell.type === 'cactus') text.textContent = '🌵';
+                if (cell.type === 'tower') text.textContent = '🗼';
+                group.appendChild(text);
+
+                svgGrid.appendChild(group);
+                tileElements[key] = polygon;
+                textElements[key] = text;
+            });
+        }
+
+        async function handleHexClick(q, r, type) {
+            let targetAction = currentCommandMode;
+            if (targetAction === 'MOVE' && type === 'tower') targetAction = 'CONQUER_TOWER';
+
+            document.getElementById('status-log').innerText = "Processing tactical vectors...";
+            try {
+                const res = await fetch(`${API_URL}/actions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameId, playerId, action: targetAction, targetCoords: { q, r } }),
+                });
+                const data = await res.json();
+                if(!data.success) {
+                    document.getElementById('status-log').innerText = `🚫 ${data.error}`;
+                } else {
+                    document.getElementById('status-log').innerText = `✨ Verified!`;
+                    updateWorldState(data.gameState);
                 }
+            } catch (err) {
+                document.getElementById('status-log').innerText = "Server communication link fault.";
+            }
+        }
 
-                if (gameState && gameState.tileOwnership && gameState.tileOwnership[key]) {
-                    const owner = gameState.tileOwnership[key];
-                    if (owner === PLAYER_ID) {
-                        fillColor = '#6ba4ff'; 
-                    } else {
-                        fillColor = '#ff6b6b'; 
+        function updateWorldState(state) {
+            if (!state) return;
+
+            const validTiles = state.validTiles || {};
+            const activePlayers = state.players || [];
+            const playerPoints = state.playerPoints || {};
+            const tileOwnership = state.tileOwnership || {};
+            const oilWells = state.oilWells || [];
+            const turnOrder = state.turnOrder || [];
+            const currentTurnIndex = state.currentTurnIndex !== undefined ? state.currentTurnIndex : 0;
+            const eliminatedPlayers = state.eliminatedPlayers || [];
+
+            if (Object.keys(validTiles).length > 0 && !mapGenerated) {
+                mapData = {};
+                Object.keys(validTiles).forEach(k => {
+                    const [q, r] = k.split(',').map(Number);
+                    mapData[k] = { type: getDeterministicTerrain(q, r) };
+                });
+                buildVisualGrid();
+                mapGenerated = true;
+            }
+
+            // --- END GAME MODAL DISPLAY LOGIC ---
+            if (eliminatedPlayers.includes(playerId)) {
+                document.getElementById('loss-msg').innerText = "Your assets ran dry of Utility Points (UP) capital pools.";
+                document.getElementById('loss-screen').style.display = 'flex';
+            }
+
+            if (state.status && state.status.startsWith('won:')) {
+                const winner = state.status.split(':')[1];
+                if (winner === playerId) {
+                    document.getElementById('win-screen').style.display = 'flex';
+                } else {
+                    document.getElementById('loss-msg').innerText = `Player [${winner}] successfully secured complete dominance over the map grid.`;
+                    document.getElementById('loss-screen').style.display = 'flex';
+                }
+            }
+
+            const myPoints = playerPoints[playerId] !== undefined ? playerPoints[playerId] : 0;
+            document.getElementById('currency-display').innerText = `Your Balance: ${myPoints} UP`;
+
+            if (turnOrder.length > 0) {
+                const currentTurnPlayer = turnOrder[currentTurnIndex];
+                if (currentTurnPlayer === playerId) {
+                    document.getElementById('turn-indicator').innerHTML = `<span style="color: #27ae60">Your Turn! Execute Strategy.</span>`;
+                } else {
+                    const pIndex = activePlayers.indexOf(currentTurnPlayer);
+                    document.getElementById('turn-indicator').innerHTML = `Waiting on: <span class="player-badge p${pIndex !== -1 ? pIndex + 1 : 1}-bg">${currentTurnPlayer}</span>`;
+                }
+            }
+
+            // Reset tile visual baseline states
+            Object.keys(tileElements).forEach(key => {
+                if (mapData[key]) {
+                    tileElements[key].className.baseVal = `hex-polygon terrain-${mapData[key].type}`;
+                    if(mapData[key].type !== 'cactus' && mapData[key].type !== 'tower') {
+                        textElements[key].textContent = '';
                     }
-                }
-
-                drawHexagon(ctx, pixel.x, pixel.y, HEX_SIZE, fillColor, strokeColor, 1);
-
-                // --- EMOJI MAP LABELS RE-IMPLEMENTED ---
-                if (gameState && gameState.oilWells && gameState.oilWells.includes(key)) {
-                    ctx.font = '16px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('🛢️', pixel.x, pixel.y);
-                } else if (tile.type === 'tower') {
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = 'bold 11px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('TOWER', pixel.x, pixel.y);
-                } else if (tile.type === 'cactus') {
-                    ctx.font = '16px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('🌵', pixel.x, pixel.y);
                 }
             });
 
-            ctx.restore();
+            // Map owner styles onto polygons
+            Object.keys(tileOwnership).forEach(key => {
+                if (tileElements[key]) {
+                    const idx = activePlayers.indexOf(tileOwnership[key]);
+                    if (idx !== -1) tileElements[key].classList.add(`owned-p${idx + 1}`);
+                }
+            });
+
+            // Render Oil Wells
+            oilWells.forEach(key => {
+                if(textElements[key]) textElements[key].textContent = '🛢️';
+            });
+
+            // Update Ledger UI
+            const board = document.getElementById('leaderboard-scores');
+            board.innerHTML = '';
+            activePlayers.forEach((p, idx) => {
+                const count = Object.values(tileOwnership).filter(id => id === p).length;
+                const balance = playerPoints[p] !== undefined ? playerPoints[p] : 0;
+                const deadLabel = eliminatedPlayers.includes(p) ? ' <span style="color:#c0392b; font-weight:bold;">(LOST)</span>' : '';
+                board.innerHTML += `
+                    <div style="margin: 5px 0; display: flex; justify-content: space-between; align-items: center; font-size: 0.9em;">
+                        <div>
+                            <span class="player-badge p${idx + 1}-bg">${p}</span>${deadLabel}
+                        </div>
+                        <span><b>${count} hexes</b> (${balance} UP)</span>
+                    </div>`;
+            });
         }
 
-        function updateTransform() {
-            requestAnimationFrame(drawScene);
+        async function fetchStateUpdate() {
+            try {
+                const res = await fetch(`${API_URL}/games/${gameId}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.success && data.gameState) {
+                    updateWorldState(data.gameState);
+                }
+            } catch (err) { console.error("Sync telemetry error:", err); }
         }
 
-        // --- 6. INPUT LISTENER INTERACTIONS ---
-        gameWindow.addEventListener('mousedown', (e) => {
-            isPointerDown = true;
-            isDraggingMap = false;
-            startX = e.clientX - currentTranslateX;
-            startY = e.clientY - currentTranslateY;
-        });
+        fetchStateUpdate();
+        setInterval(fetchStateUpdate, 1000);
 
+        // --- CAMERA PAN AND ZOOM ENGAGEMENT ---
+        const gameWindow = document.getElementById('game-window');
+        const mapContainer = document.getElementById('map-container');
+        let isPointerDown = false, isDraggingMap = false, startX, startY;
+        let currentTranslateX = window.innerWidth / 2, currentTranslateY = window.innerHeight / 2, currentScale = 0.8;
+
+        function updateTransform() { mapContainer.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`; }
+        updateTransform();
+
+        gameWindow.addEventListener('mousedown', (e) => { isPointerDown = true; isDraggingMap = false; startX = e.clientX - currentTranslateX; startY = e.clientY - currentTranslateY; });
         window.addEventListener('mousemove', (e) => {
             if (!isPointerDown) return;
-            if (!isDraggingMap && (Math.abs(e.clientX - currentTranslateX - startX) > 3 || Math.abs(e.clientY - currentTranslateY - startY) > 3)) {
-                isDraggingMap = true;
-            }
-            if (isDraggingMap) {
-                currentTranslateX = e.clientX - startX;
-                currentTranslateY = e.clientY - startY;
-                updateTransform();
-            }
+            if (Math.abs(e.clientX - currentTranslateX - startX) > 4) isDraggingMap = true;
+            if (isDraggingMap) { currentTranslateX = e.clientX - startX; currentTranslateY = e.clientY - startY; updateTransform(); }
         });
-
-        window.addEventListener('mouseup', (e) => {
-            if (isPointerDown && !isDraggingMap) {
-                const rect = canvas.getBoundingClientRect();
-                const clickX = e.clientX - rect.left;
-                const clickY = e.clientY - rect.top;
-
-                const worldX = (clickX - currentTranslateX) / currentScale;
-                const worldY = (clickY - currentTranslateY) / currentScale;
-
-                const hexCoords = pixelToHex(worldX, worldY);
-                const targetKey = `${hexCoords.q},${hexCoords.r}`;
-
-                if (mapData[targetKey]) {
-                    transmitActionToServer(hexCoords.q, hexCoords.r);
-                }
-            }
-            isPointerDown = false;
-            setTimeout(() => isDraggingMap = false, 50);
-        });
-
+        window.addEventListener('mouseup', () => { isPointerDown = false; });
         gameWindow.addEventListener('wheel', (e) => {
-            e.preventDefault();
+            e.preventDefault(); 
             const zoomDirection = e.deltaY < 0 ? 1 : -1;
-            const newScale = Math.min(Math.max(0.3, currentScale + (zoomDirection * 0.1)), 3.0);
+            const newScale = Math.min(Math.max(0.3, currentScale + (zoomDirection * 0.08)), 3.0);
             const ratio = newScale / currentScale;
             currentTranslateX = e.clientX - (e.clientX - currentTranslateX) * ratio;
             currentTranslateY = e.clientY - (e.clientY - currentTranslateY) * ratio;

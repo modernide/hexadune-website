@@ -84,7 +84,7 @@
         <div class="join-body">
             <h1 style="font-size: 3em; color: #e1c699; margin: 0 0 10px 0; letter-spacing: 2px;">HEXADUNE</h1>
             <p style="font-size: 1.2em; margin: 0 0 25px 0; color: #ddd;">Prepare your strategy before dropping onto the map grid.</p>
-            <button class="action-btn active-mode" style="font-size: 1.2em; padding: 15px 40px; width: auto; border-radius: 30px;" onclick="connectAndJoinSession()">CLICK TO JOIN GAME</button>
+            <button id="join-action-btn" class="action-btn active-mode" style="font-size: 1.2em; padding: 15px 40px; width: auto; border-radius: 30px;" onclick="connectAndJoinSession()">CLICK TO JOIN GAME</button>
         </div>
     </div>
 
@@ -135,7 +135,6 @@
 
     <script>
         const HEX_SIZE = 45;
-        // Adjust endpoint back to your rendering host or http://localhost:3000 during local testing
         const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
             ? 'http://localhost:3000/v1' 
             : 'https://hexadune.onrender.com/v1'; 
@@ -223,7 +222,6 @@
         }
 
         async function handleHexClick(q, r, type) {
-            // Cactus spawn protection on the frontend click interceptor 
             if (type === 'cactus') {
                 document.getElementById('status-log').innerText = "🚫 Cacti structures are impassable obstacles.";
                 return;
@@ -273,7 +271,6 @@
                 mapGenerated = true;
             }
 
-            // --- END GAME MODAL DISPLAY LOGIC ---
             if (eliminatedPlayers.includes(playerId)) {
                 document.getElementById('loss-msg').innerText = "Your assets ran dry of Utility Points (UP) capital pools.";
                 document.getElementById('loss-screen').style.display = 'flex';
@@ -302,7 +299,6 @@
                 }
             }
 
-            // Reset tile visual baseline states
             Object.keys(tileElements).forEach(key => {
                 if (mapData[key]) {
                     tileElements[key].className.baseVal = `hex-polygon terrain-${mapData[key].type}`;
@@ -312,7 +308,6 @@
                 }
             });
 
-            // Map owner styles onto polygons
             Object.keys(tileOwnership).forEach(key => {
                 if (tileElements[key]) {
                     const idx = activePlayers.indexOf(tileOwnership[key]);
@@ -320,12 +315,10 @@
                 }
             });
 
-            // Render Oil Wells
             oilWells.forEach(key => {
                 if(textElements[key]) textElements[key].textContent = '🛢️';
             });
 
-            // Update Ledger UI
             const board = document.getElementById('leaderboard-scores');
             board.innerHTML = '';
             activePlayers.forEach((p, idx) => {
@@ -349,14 +342,56 @@
                 const data = await res.json();
                 if (data.success && data.gameState) {
                     updateWorldState(data.gameState);
+                    return data.gameState;
                 }
             } catch (err) { console.error("Sync telemetry error:", err); }
+            return null;
         }
 
-        // Trigger network sync cycles only after selecting the Join Overlay Button
-        function connectAndJoinSession() {
+        // --- AUTOMATIC TILE EXPANSION ON LOBBY ENTRY ---
+        async function connectAndJoinSession() {
+            document.getElementById('join-action-btn').disabled = true;
+            document.getElementById('status-log').innerText = "Establishing authorization context...";
+            
+            // 1. Synchronize data layers first to find valid target coordinates
+            const state = await fetchStateUpdate();
+            
+            // 2. Fallback coordinates logic mirrors the server router to find non-cactus spawns
+            let targetQ = 0, targetR = 0;
+            if (state && state.players) {
+                const slot = state.players.indexOf(playerId) !== -1 ? state.players.indexOf(playerId) : state.players.length;
+                const spawnSpots = [{ q: -5, r: -2 }, { q: 5, r: -3 }, { q: 0, r: 5 }];
+                let candidate = spawnSpots[slot % spawnSpots.length];
+                targetQ = candidate.q;
+                targetR = candidate.r;
+                
+                let key = `${targetQ},${targetR}`;
+                if ((state.validTiles && !state.validTiles[key]) || getDeterministicTerrain(targetQ, targetR) === 'cactus') {
+                    const fallbacks = Object.keys(state.validTiles || {}).filter(k => getDeterministicTerrain(...k.split(',').map(Number)) !== 'cactus');
+                    if (fallbacks.length > 0) {
+                        const selection = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+                        [targetQ, targetR] = selection.split(',').map(Number);
+                    }
+                }
+            }
+
+            // 3. Fire registration directive payload
+            try {
+                const res = await fetch(`${API_URL}/actions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameId, playerId, action: 'MOVE', targetCoords: { q: targetQ, r: targetR } }),
+                });
+                const data = await res.json();
+                if (data.success && data.gameState) {
+                    updateWorldState(data.gameState);
+                }
+            } catch(e) {
+                console.error("Auto registration drop sequence failed.", e);
+            }
+
+            // 4. Tear down overlay window and kickstart main engine clock
             document.getElementById('join-screen').style.display = 'none';
-            fetchStateUpdate();
             setInterval(fetchStateUpdate, 1000);
         }
 

@@ -211,9 +211,8 @@
             localStorage.setItem('hexadune_player_id', PLAYER_ID);
         }
 
-        const SERVER_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:3000'
-            : 'https://hexaduneserver.onrender.com'; // Point to your hosted deployment environment
+        // Removed all local hosting fallback parameters
+        const SERVER_URL = 'https://hexadune.onrender.com';
 
         let gameState = null;
         let selectedAction = 'MOVE'; 
@@ -244,9 +243,7 @@
         // --- 2. JOIN MATCH HOOK ---
         function joinGameSession() {
             document.getElementById('join-screen').style.display = 'none';
-            // Perform an initial state sync which automatically registers us
             syncGameStateWithServer();
-            // Start regular data polling loop
             setInterval(syncGameStateWithServer, 3000);
         }
 
@@ -264,7 +261,6 @@
         }
 
         async function transmitActionToServer(q, r) {
-            // Block sending requests if the user cannot even join or click placement on a cactus locally
             if (mapData[`${q},${r}`] && mapData[`${q},${r}`].type === 'cactus') {
                 console.warn("Local Action Blocked: Cannot claim or occupy an impassable rocky cactus terrain tile.");
                 return;
@@ -295,7 +291,6 @@
         function processIncomingState(serverState) {
             gameState = serverState;
             
-            // Core Defeat Check: Evaluate if current user is stored inside the elimination stack
             if (gameState.eliminatedPlayers && gameState.eliminatedPlayers.includes(PLAYER_ID)) {
                 document.getElementById('defeat-screen').style.display = 'flex';
                 return;
@@ -326,7 +321,7 @@
             let hash = Math.sin(dot1) * Math.cos(dot2) * 43758.5453123;
             let val = hash - Math.floor(hash);
             if (val < 0.08) return 'tower';
-            if (val < 0.20) return 'cactus'; // Rocky impassable landmark
+            if (val < 0.20) return 'cactus'; 
             return 'sand';
         }
 
@@ -399,7 +394,6 @@
             ctx.translate(currentTranslateX, currentTranslateY);
             ctx.scale(currentScale, currentScale);
 
-            // Draw game space infrastructure assets
             Object.keys(mapData).forEach(key => {
                 const [q, r] = key.split(',').map(Number);
                 const tile = mapData[key];
@@ -409,24 +403,22 @@
                 let strokeColor = '#cda373';
 
                 if (tile.type === 'cactus') {
-                    fillColor = '#a8b082'; // Tint for rocky cactus space 
+                    fillColor = '#a8b082'; 
                 } else if (tile.type === 'tower') {
                     fillColor = '#9e8b78'; 
                 }
 
-                // Apply owner coloring filters
                 if (gameState && gameState.tileOwnership && gameState.tileOwnership[key]) {
                     const owner = gameState.tileOwnership[key];
                     if (owner === PLAYER_ID) {
-                        fillColor = '#6ba4ff'; // Blue for Player
+                        fillColor = '#6ba4ff'; 
                     } else {
-                        fillColor = '#ff6b6b'; // Red for enemy players
+                        fillColor = '#ff6b6b'; 
                     }
                 }
 
                 drawHexagon(ctx, pixel.x, pixel.y, HEX_SIZE, fillColor, strokeColor, 1);
 
-                // Structures text layer styling overlays
                 if (gameState && gameState.oilWells && gameState.oilWells.includes(key)) {
                     ctx.fillStyle = '#222222';
                     ctx.font = 'bold 12px Arial';
@@ -474,7 +466,6 @@
 
         window.addEventListener('mouseup', (e) => {
             if (isPointerDown && !isDraggingMap) {
-                // Calculation relative conversion context for hit evaluation
                 const rect = canvas.getBoundingClientRect();
                 const clickX = e.clientX - rect.left;
                 const clickY = e.clientY - rect.top;

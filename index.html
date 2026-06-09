@@ -76,9 +76,28 @@
             background: #2c3e50; padding: 40px 60px; border-radius: 12px;
             box-shadow: 0 0 25px rgba(0,0,0,0.5); border: 4px solid #fff;
         }
+
+        /* --- CURSOR FLOATING COST DISPLAY --- */
+        #cost-tooltip {
+            position: fixed;
+            pointer-events: none;
+            z-index: 30000;
+            background: rgba(44, 62, 80, 0.95);
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: bold;
+            border: 2px solid #e1c699;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: none;
+            transform: translate(15px, 15px);
+        }
     </style>
 </head>
 <body>
+
+    <div id="cost-tooltip">Loading vector...</div>
 
     <div id="join-screen">
         <div class="join-body">
@@ -160,6 +179,8 @@
         let textElements = {};
         let mapData = {};      
         let mapGenerated = false;
+        let latestServerState = null;
+        const tooltip = document.getElementById('cost-tooltip');
 
         function setMode(mode) {
             currentCommandMode = mode;
@@ -182,6 +203,71 @@
             return rand < 0.08 ? 'tower' : rand < 0.20 ? 'cactus' : 'sand';
         }
 
+        function getNeighbors(q, r) {
+            return [
+                { q: q + 1, r: r },     
+                { q: q + 1, r: r - 1 }, 
+                { q: q, r: r - 1 }, 
+                { q: q - 1, r: r },     
+                { q: q - 1, r: r + 1 }, 
+                { q: q, r: r + 1 }  
+            ];
+        }
+
+        function isAdjacentToTowerLocal(q, r) {
+            if (!latestServerState || !latestServerState.validTiles) return false;
+            const neighbors = getNeighbors(q, r);
+            return neighbors.some(n => {
+                if (!latestServerState.validTiles[`${n.q},${n.r}`]) return false;
+                return getDeterministicTerrain(n.q, n.r) === 'tower';
+            });
+        }
+
+        // --- CALCULATION LOGIC FOR THE HOVER TOOLTIP DISPLAY ---
+        function calculateLocalCost(q, r, type) {
+            if (type === 'cactus') return 'IMPASSABLE';
+            if (!latestServerState) return 'Loading...';
+
+            const targetKey = `${q},${r}`;
+            const tileOwnership = latestServerState.tileOwnership || {};
+            const currentOwner = tileOwnership[targetKey];
+
+            if (currentCommandMode === 'BUILD_OIL_WELL') {
+                if (currentOwner !== playerId) return 'Must Own First';
+                if ((latestServerState.oilWells || []).includes(targetKey)) return 'Already Has Well';
+                return '8 UP';
+            }
+
+            // Command Mode is MOVE / EXPAND
+            const ownedKeys = Object.keys(tileOwnership).filter(k => tileOwnership[k] === playerId);
+            const isAdjacent = ownedKeys.some(ok => {
+                const [oq, or] = ok.split(',').map(Number);
+                return getNeighbors(oq, or).some(n => n.q === q && n.r === r);
+            });
+
+            if (!isAdjacent && ownedKeys.length > 0) return 'Isolated';
+
+            let cost = 0;
+            if (!currentOwner) {
+                cost = 2; // BASE_CAPTURE_COST
+            } else if (currentOwner === playerId) {
+                cost = 0;
+            } else {
+                cost = 4; // ENEMY_CAPTURE_COST
+            }
+
+            if (isAdjacentToTowerLocal(q, r) && currentOwner !== playerId) {
+                cost += 3; // TOWER_ZONE_CAPTURE_SURCHARGE
+            }
+
+            // Dynamic back-and-forth doubling rule adjustment
+            if (currentOwner && currentOwner !== playerId) {
+                cost *= 2;
+            }
+
+            return `${cost} UP`;
+        }
+
         const svgGrid = document.getElementById('hex-grid');
         const hexPoints = [];
         for (let i = 0; i < 6; i++) {
@@ -202,7 +288,20 @@
 
                 const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
                 group.setAttribute('transform', `translate(${x}, ${y})`);
+                
+                // Mouse interactive listeners for floating display integration
                 group.addEventListener('click', () => { if (!isDraggingMap) handleHexClick(q, r, cell.type); });
+                group.addEventListener('mouseenter', () => {
+                    tooltip.style.display = 'block';
+                    tooltip.innerText = `Cost: ${calculateLocalCost(q, r, cell.type)}`;
+                });
+                group.addEventListener('mousemove', (e) => {
+                    tooltip.style.left = e.clientX + 'px';
+                    tooltip.style.top = e.clientY + 'px';
+                });
+                group.addEventListener('mouseleave', () => {
+                    tooltip.style.display = 'none';
+                });
 
                 const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
                 polygon.setAttribute('points', polygonPoints);
@@ -251,6 +350,7 @@
 
         function updateWorldState(state) {
             if (!state) return;
+            latestServerState = state;
 
             const validTiles = state.validTiles || {};
             const activePlayers = state.players || [];
@@ -353,10 +453,8 @@
             document.getElementById('join-action-btn').disabled = true;
             document.getElementById('status-log').innerText = "Establishing authorization context...";
             
-            // 1. Synchronize data layers first to find valid target coordinates
             const state = await fetchStateUpdate();
             
-            // 2. Fallback coordinates logic mirrors the server router to find non-cactus spawns
             let targetQ = 0, targetR = 0;
             if (state && state.players) {
                 const slot = state.players.indexOf(playerId) !== -1 ? state.players.indexOf(playerId) : state.players.length;
@@ -375,7 +473,6 @@
                 }
             }
 
-            // 3. Fire registration directive payload
             try {
                 const res = await fetch(`${API_URL}/actions`, {
                     method: 'POST',
@@ -390,7 +487,6 @@
                 console.error("Auto registration drop sequence failed.", e);
             }
 
-            // 4. Tear down overlay window and kickstart main engine clock
             document.getElementById('join-screen').style.display = 'none';
             setInterval(fetchStateUpdate, 1000);
         }

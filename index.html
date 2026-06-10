@@ -543,7 +543,7 @@
             auth.signInWithPopup(provider)
                 .then((result) => {
                     // Set cookie with custom username string payload valid for 1 day (86400 seconds)
-                    document.cookie = `hexadune_username=${encodeURIComponent(username)}; max-age=86400; path=/`;
+                    document.cookie = `hexadune_player_id=${encodeURIComponent(username)}; max-age=86400; path=/`;
                     
                     // Redirects to your dashboard/games loop page upon success
                     window.location.href = "./games.html";

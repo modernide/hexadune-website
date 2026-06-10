@@ -249,6 +249,9 @@
             #cookie-banner.show { bottom: 6.5rem; }
         }
     </style>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
@@ -505,21 +508,45 @@
 
         function acceptCookies() {
             cookieBanner.classList.remove('show');
-            // Hard hide after CSS slide transition completes so layout doesn't overlap
             setTimeout(() => {
                 cookieBanner.style.display = 'none';
             }, 500);
         }
 
+        // --- FIREBASE IDENTITY PROVISION INTERFACE ---
+        
+        // REPLACE THESE STRINGS WITH THE CONFIG DETAILS FOUND IN YOUR FIREBASE CONSOLE PROJECT SETTINGS
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY_HERE",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
 
+        // Initialize App Engine Identity Services
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
 
         function loginWithGoogle() {
+            const usernameInput = document.getElementById('username');
+            const username = usernameInput.value.trim();
+
+            // Validate that the user picked an internal commander handle before checking external OAuth identifiers
+            if (!username) {
+                alert("Please choose a Commander Username before authenticating with Google.");
+                usernameInput.focus();
+                return;
+            }
+
             const provider = new firebase.auth.GoogleAuthProvider();
             auth.signInWithPopup(provider)
                 .then((result) => {
-                    // Redirects to your creator page upon success
+                    // Set cookie with custom username string payload valid for 1 day (86400 seconds)
+                    document.cookie = `hexadune_username=${encodeURIComponent(username)}; max-age=86400; path=/`;
+                    
+                    // Redirects to your dashboard/games loop page upon success
                     window.location.href = "./games.html";
                 })
                 .catch((error) => {

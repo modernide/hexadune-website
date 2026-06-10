@@ -366,7 +366,8 @@
                 alert("Username cannot be blank.");
                 return;
             }
-            localStorage.setItem('hexadune_player_id', val);
+            document.cookie = `hexadune_player_id=${val}; max-age=86400; path=/`;
+            //localStorage.setItem('hexadune_player_id', val);
             alert("Commander Handle Updated: " + val);
         }
 

@@ -572,6 +572,20 @@
                 });
             });
         });
+
+
+        document.addEventListener("DOMContentLoaded", () => {
+            // Prioritize pulling Google OAuth / Player ID Cookie directly
+            const cookieUser = getCookie('hexadune_player_id');
+            if (cookieUser) {
+                document.getElementById('username').value = cookieUser;
+            } else {
+                document.getElementById('username').value = 'player-' + Math.random().toString(36).substring(2, 7);
+            }
+            
+            fetchPublicLobbies();
+            setInterval(fetchPublicLobbies, 3000);
+        });
     </script>
 </body>
 </html>

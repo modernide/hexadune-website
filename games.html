@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hexadune - Lobbies</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100vw; height: 100vh;
+            overflow: hidden; background-color: #dcb37b;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none;
+            touch-action: none;
+        }
+
+        #game-window { width: 100%; height: 100%; cursor: grab; }
+        #game-window:active { cursor: grabbing; }
+        #map-container { position: absolute; transform-origin: 0 0; }
+        
+        .hex-polygon { stroke: #b88d54; stroke-width: 2; transition: fill 0.3s, stroke 0.2s; }
+        .terrain-sand { fill: #e1c699; }
+        .terrain-cactus { fill: #d2b48c; }
+        .terrain-tower { fill: #e8cc9b; stroke: #8a6a3d; stroke-width: 4; }
+        
+        .hex-text { font-size: 22px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+
+        /* --- LANDING PAGE OVERLAY UI --- */
+        #ui-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none; 
+            z-index: 10;
+            box-sizing: border-box;
+            padding: 1rem;
+            overflow: hidden;
+        }
+
+        .hero-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #4a3319;
+            margin-bottom: 0.1rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .hero-subtitle {
+            font-size: 0.9rem;
+            color: #6d4c24;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .lobby-card {
+            background: rgba(245, 222, 179, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 2px solid #b88d54;
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 480px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            pointer-events: auto; 
+            box-sizing: border-box;
+            overflow-y: auto; /* Card fits screen, scrolls internally if needed */
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .input-group label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #5c3f1c;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .styled-input, .styled-select {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #b88d54;
+            padding: 0.65rem 0.85rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #4a3319;
+            outline: none;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .styled-input:focus, .styled-select:focus {
+            border-color: #8a6a3d;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(138, 106, 61, 0.2);
+        }
+
+        .btn-primary {
+            background-color: #8a6a3d;
+            color: #ffffff;
+            border: 2px solid #b88d54;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 0.5rem;
+        }
+
+        .btn-primary:hover {
+            background-color: #5c3f1c;
+            border-color: #e1c699;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: #c1a378;
+            color: #4a3319;
+            border: 2px solid #a48253;
+            padding: 0.5rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background-color: #a48253;
+            color: #ffffff;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: #8a6a3d;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0.2rem 0;
+        }
+
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid rgba(138, 106, 61, 0.4);
+        }
+
+        .divider:not(:empty)::before { margin-right: .75em; }
+        .divider:not(:empty)::after { margin-left: .75em; }
+
+        /* --- GAMES LIST MODULE --- */
+        .games-list-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            max-height: 110px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        .game-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.5);
+            padding: 0.5rem 0.7rem;
+            border-radius: 6px;
+            border: 1px solid #e1c699;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #4a3319;
+        }
+
+        /* --- FOOTER COMPONENT --- */
+        #landing-footer {
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100%;
+            background: rgba(74, 51, 25, 0.9);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border-top: 2px solid #8a6a3d;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+            z-index: 20;
+            pointer-events: auto;
+        }
+
+        .footer-copyright {
+            color: #e1c699;
+            font-size: 0.8rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .footer-links a {
+            color: #e1c699;
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: color 0.2s ease;
+        }
+
+        .footer-links a:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            #landing-footer { flex-direction: column; gap: 0.3rem; text-align: center; padding: 0.5rem; }
+            .footer-links { gap: 0.8rem; }
+            .hero-title { font-size: 2rem; }
+            .lobby-card { padding: 1rem; max-height: 75vh; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-window">
+        <div id="map-container">
+            <svg id="hex-grid" style="overflow: visible;"></svg>
+        </div>
+    </div>
+
+    <div id="ui-overlay">
+        <h1 class="hero-title">Hexadune</h1>
+        <div class="hero-subtitle">Lobby & Deployment Center</div>
+
+        <div class="lobby-card">
+            <div class="input-group">
+                <label for="current-username">Commander Handle</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="current-username" class="styled-input" value="Commander" autocomplete="off">
+                    <button class="btn-secondary" onclick="saveUsername()">Update</button>
+                </div>
+            </div>
+
+            <div class="divider">Active Public Lobbies</div>
+
+            <div class="games-list-wrapper" id="games-list">
+                <div style="text-align: center; color: #5c3f1c; font-size: 0.85em; font-weight: bold;">Scanning frequencies...</div>
+            </div>
+
+            <div class="divider">Deploy Match Room</div>
+
+            <div class="input-group">
+                <label for="new-game-id">Lobby Name / Code</label>
+                <input type="text" id="new-game-id" class="styled-input" placeholder="Enter custom room name..." autocomplete="off">
+            </div>
+
+            <div class="input-group">
+                <label for="new-game-visibility">Lobby Visibility</label>
+                <select id="new-game-visibility" class="styled-select">
+                    <option value="public">Public (Show on Lobbies List)</option>
+                    <option value="private">Private (Hidden Custom Link)</option>
+                </select>
+            </div>
+
+            <button class="btn-primary" onclick="createGameRoom()">Create & Deploy</button>
+        </div>
+    </div>
+
+    <footer id="landing-footer">
+        <div class="footer-copyright">
+            &copy; 2026 hexadune. All Rights Reserved.
+        </div>
+        <div class="footer-links">
+            <a href="#" onclick="alert('Privacy Policy Placeholder'); return false;">Privacy Policy</a>
+            <a href="#" onclick="alert('Terms of Service Placeholder'); return false;">Terms of Service</a>
+            <a href="#" onclick="alert('Support Desk Placeholder'); return false;">Contact Support</a>
+        </div>
+    </footer>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script>
+        const HEX_SIZE = 45;
+        const MAP_RADIUS = 17; 
+
+        const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+            ? 'http://localhost:3000/v1' 
+            : 'https://hexadune.onrender.com/v1';
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedUser = localStorage.getItem('hexadune_username');
+            if (savedUser) document.getElementById('current-username').value = savedUser;
+            
+            fetchPublicLobbies();
+            setInterval(fetchPublicLobbies, 3000);
+        });
+
+        async function fetchPublicLobbies() {
+            try {
+                const response = await fetch(`${API_URL}/games`);
+                const data = await response.json();
+                const gamesListContainer = document.getElementById('games-list');
+
+                if (data.success && data.lobbies && data.lobbies.length > 0) {
+                    gamesListContainer.innerHTML = '';
+                    data.lobbies.forEach(lobby => {
+                        gamesListContainer.innerHTML += `
+                            <div class="game-row">
+                                <span><b>${escapeHtml(lobby.gameId)}</b> <small style="opacity: 0.8; display:block;">${lobby.playerCount}/3 Players - Active</small></span>
+                                <button class="btn-secondary" onclick="joinLobby('${lobby.gameId}')">Join</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    gamesListContainer.innerHTML = '<div style="text-align: center; color: #5c3f1c; font-size: 0.85em; font-weight: bold;">No active public lobbies. Deploy your own!</div>';
+                }
+            } catch (err) {
+                console.error("Failed to retrieve public games listings:", err);
+                document.getElementById('games-list').innerHTML = '<div style="text-align: center; color: #a48253; font-size: 0.85em;">Server link offline.</div>';
+            }
+        }
+
+        function joinLobby(gameId) {
+            window.location.href = `index.html?gameId=${gameId}`;
+        }
+
+        function saveUsername() {
+            const val = document.getElementById('current-username').value.trim();
+            if(!val) {
+                alert("Username cannot be blank.");
+                return;
+            }
+            localStorage.setItem('hexadune_username', val);
+            alert("Commander Handle Updated: " + val);
+        }
+
+        function createGameRoom() {
+            const gameId = document.getElementById('new-game-id').value.trim();
+            const visibility = document.getElementById('new-game-visibility').value;
+            if(!gameId) {
+                alert("Please enter a Lobby Name/Code.");
+                return;
+            }
+            window.location.href = `index.html?gameId=${encodeURIComponent(gameId)}&visibility=${visibility}`;
+        }
+
+        function escapeHtml(string) {
+            return String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // --- DECOUPLED FRONTEND AXIAL NEIGHBOR LOOKUP ---
+        function getNeighbors(q, r) {
+            return [
+                { q: q + 1, r: r }, { q: q + 1, r: r - 1 }, { q: q, r: r - 1 },
+                { q: q - 1, r: r }, { q: q - 1, r: r + 1 }, { q: q, r: r + 1 }
+            ];
+        }
+
+        // --- DETERMINISTIC TERRAIN MATRICES ---
+        function getLocalTerrain(q, r) {
+            const fallbackSeed = 'dune-lobby-standard'; 
+            let seedOffset = 0;
+            for (let i = 0; i < fallbackSeed.length; i++) seedOffset += fallbackSeed.charCodeAt(i) * (i + 1);
+            let dot1 = (q * 12.9898) + (r * 78.233) + (seedOffset * 0.123);
+            let dot2 = (q * 45.1312) + (r * 23.7198) - (seedOffset * 0.456);
+            let hash = Math.sin(dot1) * Math.cos(dot2) * 43758.5453123;
+            const rand = hash - Math.floor(hash);
+            return rand < 0.08 ? 'tower' : rand < 0.20 ? 'cactus' : 'sand';
+        }
+
+        function generateLocalLandmass() {
+            let rawGrid = {};
+            for (let q = -MAP_RADIUS; q <= MAP_RADIUS; q++) {
+                let r1 = Math.max(-MAP_RADIUS, -q - MAP_RADIUS);
+                let r2 = Math.min(MAP_RADIUS, -q + MAP_RADIUS);
+                for (let r = r1; r <= r2; r++) {
+                    const distanceFromCenter = (Math.abs(q) + Math.abs(q + r) + Math.abs(r)) / 2;
+                    let dotProduct = (q * 12.9898) + (r * 78.233);
+                    let rawHash = Math.sin(dotProduct) * Math.sin(q * 45.13 + r * 23.71) * 43758.5453123;
+                    let hashInt = (Math.abs(rawHash) * 100000) >>> 0;
+                    let shapeRand = (hashInt % 1000) / 1000;
+                    if (shapeRand >= Math.floor((distanceFromCenter / MAP_RADIUS) * 400) / 1000) {
+                        rawGrid[`${q},${r}`] = true;
+                    }
+                }
+            }
+            
+            let connectedTiles = {};
+            let queue = [{ q: 0, r: 0 }];
+            connectedTiles["0,0"] = true;
+            while (queue.length > 0) {
+                let current = queue.shift();
+                getNeighbors(current.q, current.r).forEach(n => {
+                    let nKey = `${n.q},${n.r}`;
+                    if (rawGrid[nKey] && !connectedTiles[nKey]) {
+                        connectedTiles[nKey] = true;
+                        queue.push(n);
+                    }
+                });
+            }
+            return connectedTiles;
+        }
+
+        const svgGrid = document.getElementById('hex-grid');
+        const validTiles = generateLocalLandmass();
+
+        const hexPoints = [];
+        for (let i = 0; i < 6; i++) {
+            const angle = Math.PI / 180 * (60 * i - 30);
+            hexPoints.push(`${HEX_SIZE * Math.cos(angle)},${HEX_SIZE * Math.sin(angle)}`);
+        }
+        const polygonPoints = hexPoints.join(' ');
+
+        function buildMap() {
+            svgGrid.innerHTML = '';
+            
+            Object.keys(validTiles).forEach(key => {
+                const [q, r] = key.split(',').map(Number);
+                const x = HEX_SIZE * Math.sqrt(3) * (q + r / 2);
+                const y = HEX_SIZE * 3 / 2 * r;
+                const terrainType = getLocalTerrain(q, r);
+
+                const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                group.setAttribute('transform', `translate(${x}, ${y})`);
+                group.classList.add('hex-group');
+
+                const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                polygon.setAttribute('points', polygonPoints);
+                polygon.classList.add('hex-polygon', `terrain-${terrainType}`);
+                group.appendChild(polygon);
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.classList.add('hex-text');
+                if (terrainType === 'cactus') text.textContent = '🌵';
+                if (terrainType === 'tower') text.textContent = '🗼';
+                group.appendChild(text);
+
+                svgGrid.appendChild(group);
+            });
+        }
+
+        const gameWindow = document.getElementById('game-window');
+        const mapContainer = document.getElementById('map-container');
+        
+        let isPointerDown = false, startX, startY;
+        let currentTranslateX = window.innerWidth / 2;
+        let currentTranslateY = window.innerHeight / 2;
+        let currentScale = 0.55; 
+
+        let angleTime = 0;
+        let isUserInteracting = false;
+        let interactionTimeout;
+
+        function updateTransform() { 
+            mapContainer.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`; 
+        }
+
+        function flagUserInteraction() {
+            isUserInteracting = true;
+            clearTimeout(interactionTimeout);
+            interactionTimeout = setTimeout(() => {
+                isUserInteracting = false;
+            }, 6000);
+        }
+        
+        updateTransform();
+        buildMap();
+
+        function autoPanLoop() {
+            if (!isUserInteracting && !isPointerDown) {
+                angleTime += 0.002; 
+                currentTranslateX += Math.cos(angleTime) * 0.15;
+                currentTranslateY += Math.sin(angleTime * 0.5) * 0.12;
+                updateTransform();
+            }
+            requestAnimationFrame(autoPanLoop);
+        }
+        requestAnimationFrame(autoPanLoop);
+
+        gameWindow.addEventListener('mousedown', (e) => { 
+            isPointerDown = true; 
+            flagUserInteraction();
+            startX = e.clientX - currentTranslateX; 
+            startY = e.clientY - currentTranslateY; 
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!isPointerDown) return;
+            flagUserInteraction();
+            currentTranslateX = e.clientX - startX; 
+            currentTranslateY = e.clientY - startY; 
+            updateTransform();
+        });
+        window.addEventListener('mouseup', () => { isPointerDown = false; });
+        
+        gameWindow.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isPointerDown = true;
+                flagUserInteraction();
+                startX = e.touches[0].clientX - currentTranslateX;
+                startY = e.touches[0].clientY - currentTranslateY;
+            }
+        });
+        window.addEventListener('touchmove', (e) => {
+            if (!isPointerDown || e.touches.length !== 1) return;
+            flagUserInteraction();
+            currentTranslateX = e.touches[0].clientX - startX;
+            currentTranslateY = e.touches[0].clientY - startY;
+            updateTransform();
+        });
+        window.addEventListener('touchend', () => { isPointerDown = false; });
+
+        gameWindow.addEventListener('wheel', (e) => {
+            e.preventDefault(); 
+            flagUserInteraction();
+            const zoomDirection = e.deltaY < 0 ? 1 : -1;
+            const newScale = Math.min(Math.max(0.25, currentScale + (zoomDirection * 0.05)), 2.0);
+            const ratio = newScale / currentScale;
+            
+            currentTranslateX = e.clientX - (e.clientX - currentTranslateX) * ratio;
+            currentTranslateY = e.clientY - (e.clientY - currentTranslateY) * ratio;
+            currentScale = newScale;
+            updateTransform();
+        }, { passive: false });
+
+        window.addEventListener('resize', () => {
+            currentTranslateX = window.innerWidth / 2;
+            currentTranslateY = window.innerHeight / 2;
+            updateTransform();
+        });
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCJLvQXWf21el_qFGubIqWBBWmJIQREZc4",
+            authDomain: "hexadune.firebaseapp.com",
+            projectId: "hexadune",
+            storageBucket: "hexadune.firebasestorage.app",
+            messagingSenderId: "1044415457830",
+            appId: "1:1044415457830:web:97a4a9820b2f880d1f94e7",
+            measurementId: "G-N451F03F5J"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // Logout Function
+        function handleLogout() {
+            auth.signOut().then(() => {
+                window.location.href = "./index.html";
+            }).catch((error) => {
+                console.error("Logout Error:", error);
+            });
+        }
+
+        // THE GUARD: Check authentication state
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                // If no user is logged in, send them back to the landing page
+                window.location.href = "./index.html"; 
+            } else {
+                console.log("Welcome, " + user.displayName);
+                // You can now use user.uid to save their tree to MongoDB!
+            }
+        });
+    </script>
+</body>
+</html>

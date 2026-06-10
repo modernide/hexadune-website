@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hexadune - Desert Territory Game</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100vw; height: 100vh;
+            overflow: hidden; background-color: #dcb37b;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none;
+            touch-action: none;
+        }
+
+        /* --- PRE-GAME JOIN SCREEN OVERLAY --- */
+        #join-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(43, 31, 19, 0.95); z-index: 20000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: white; text-align: center; padding: 20px;
+            box-sizing: border-box;
+        }
+        .join-body {
+            background: #24190e; padding: 30px; border-radius: 16px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.6); border: 3px solid #b88d54;
+            max-width: 400px; width: 100%; box-sizing: border-box;
+        }
+
+        /* --- GAME OVERLAY INFRASTRUCTURE --- */
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; display: flex; flex-direction: column;
+            justify-content: space-between; padding: 12px; box-sizing: border-box;
+            z-index: 10;
+        }
+
+        /* --- TOP STATS HEADER HUD --- */
+        .top-hud-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            width: 100%; gap: 10px; pointer-events: auto;
+        }
+
+        .hud-card {
+            background: rgba(40, 26, 13, 0.88); color: #fff;
+            padding: 8px 14px; border-radius: 20px; border: 2px solid #b88d54;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 0.9em;
+            font-weight: bold; backdrop-filter: blur(4px);
+        }
+
+        .hud-card-accent { border-color: #e1c699; background: rgba(92, 67, 34, 0.9); }
+
+        /* --- SCOREBOARD SYSTEM --- */
+        #leaderboard {
+            position: absolute; top: 70px; left: 12px; width: 180px;
+            pointer-events: auto; background: rgba(40, 26, 13, 0.8);
+            border: 2px solid #8a6a3d; border-radius: 10px; padding: 10px;
+            color: #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            backdrop-filter: blur(3px);
+        }
+
+        /* --- BOTTOM CONTROLS RACK HUD --- */
+        .bottom-hud-bar {
+            width: 100%; display: flex; flex-direction: column;
+            align-items: center; gap: 8px; pointer-events: auto;
+            margin-top: auto;
+        }
+
+        .command-container {
+            background: rgba(40, 26, 13, 0.9); border: 2px solid #b88d54;
+            border-radius: 14px; padding: 8px; width: 100%; max-width: 500px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.4); display: flex; gap: 8px;
+            box-sizing: border-box; backdrop-filter: blur(5px);
+        }
+
+        #status-log {
+            color: #ff9f43; font-weight: bold; font-size: 0.85em; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.5); padding: 4px 12px; border-radius: 10px;
+            min-height: 1.2em; text-align: center; max-width: 90%; pointer-events: none;
+        }
+
+        /* --- BUTTON & ACTION SYSTEM --- */
+        .action-btn {
+            flex: 1; padding: 12px 6px; font-weight: bold; font-size: 0.85em;
+            border: 2px solid #8a6a3d; border-radius: 8px; cursor: pointer;
+            background: #fff; color: #3e2d1c; transition: all 0.2s;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
+        }
+        .action-btn:active { transform: scale(0.97); }
+        .active-mode { background: #b88d54 !important; color: white !important; border-color: #e1c699 !important; }
+
+        /* --- MAP FRAMEWORK --- */
+        #game-window { width: 100%; height: 100%; cursor: grab; }
+        #game-window:active { cursor: grabbing; }
+        #map-container { position: absolute; transform-origin: 0 0; }
+        
+        .hex-group { cursor: pointer; }
+        .hex-group:hover .hex-polygon { filter: brightness(1.1); stroke: #fff; stroke-width: 3; }
+        
+        .hex-polygon { stroke: #b88d54; stroke-width: 2; transition: fill 0.3s, stroke 0.2s; }
+        .terrain-sand { fill: #e1c699; }
+        .terrain-cactus { fill: #d2b48c; }
+        .terrain-tower { fill: #e8cc9b; stroke: #8a6a3d; stroke-width: 4; }
+        
+        .owned-p1 { fill: #ff4d4d !important; fill-opacity: 0.65; }
+        .owned-p2 { fill: #3399ff !important; fill-opacity: 0.65; }
+        .owned-p3 { fill: #00cc66 !important; fill-opacity: 0.65; }
+        
+        .hex-text { font-size: 22px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+        
+        .player-badge { display: inline-block; padding: 2px 6px; border-radius: 10px; font-weight: bold; color: white; font-size: 0.8em; }
+        .p1-bg { background-color: #ff4d4d; }
+        .p2-bg { background-color: #3399ff; }
+        .p3-bg { background-color: #00cc66; }
+
+        /* --- END GAME MODAL OVERLAYS --- */
+        .endgame-modal {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.85); z-index: 10000;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            color: white; font-family: sans-serif; text-align: center; padding: 20px;
+        }
+        .modal-body {
+            background: #24190e; padding: 30px; border-radius: 16px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.5); border: 4px solid #fff; max-width: 400px;
+        }
+
+        /* --- CURSOR FLOATING COST DISPLAY --- */
+        #cost-tooltip {
+            position: fixed; pointer-events: none; z-index: 30000;
+            background: rgba(40, 26, 13, 0.95); color: #fff; padding: 6px 10px;
+            border-radius: 6px; font-size: 0.85em; font-weight: bold;
+            border: 2px solid #e1c699; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: none; transform: translate(15px, 15px);
+        }
+
+        /* --- MOBILE SCREEN MEDIA TUNING --- */
+        @media (max-width: 600px) {
+            .hud-card { font-size: 0.75em; padding: 6px 10px; }
+            #leaderboard { display: none; }
+            .action-btn { font-size: 0.75em; padding: 10px 4px; }
+            #status-log { font-size: 0.75em; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="cost-tooltip">Loading vector...</div>
+
+    <div id="join-screen">
+        <div class="join-body">
+            <h1 style="font-size: 2.2em; color: #e1c699; margin: 0 0 10px 0; letter-spacing: 2px;">HEXADUNE</h1>
+            <p style="font-size: 0.95em; margin: 0 0 25px 0; color: #ccc; line-height: 1.4;">Establish tactical territory deployments and manage resource footprint nodes across the map.</p>
+            <button id="join-action-btn" class="action-btn active-mode" style="font-size: 1.1em; padding: 12px 30px; width: auto; border-radius: 25px;" onclick="connectAndJoinSession()">DEPLOY INTO MAP</button>
+        </div>
+    </div>
+
+    <div id="win-screen" class="endgame-modal">
+        <div class="modal-body" style="border-color: #2ecc71;">
+            <h1 style="font-size: 2.5em; color: #2ecc71; margin: 0 0 15px 0;">VICTORY</h1>
+            <p style="font-size: 1.1em; margin: 0;" id="win-msg">You have conquered the desert space maps!</p>
+            <button class="action-btn active-mode" style="margin-top: 25px; font-size: 1em; padding: 12px;" onclick="createNewLobby()">Join New Match Room</button>
+        </div>
+    </div>
+
+    <div id="loss-screen" class="endgame-modal">
+        <div class="modal-body" style="border-color: #e74c3c;">
+            <h1 style="font-size: 2.5em; color: #e74c3c; margin: 0 0 15px 0;">DEFEAT</h1>
+            <p style="font-size: 1.1em; margin: 0;" id="loss-msg">Your balance reached 0 UP and went bankrupt.</p>
+            <button class="action-btn" style="margin-top: 25px; font-size: 1em; padding: 12px; background: #e74c3c; color: white; border: none;" onclick="createNewLobby()">Return to Main Lobby</button>
+        </div>
+    </div>
+
+    <div id="ui-layer">
+        <div class="top-hud-bar">
+            <div class="hud-card" id="turn-indicator">Connecting...</div>
+            <div class="hud-card hud-card-accent" id="currency-display">0 UP</div>
+        </div>
+        
+        <div id="leaderboard">
+            <div style="font-size: 0.8em; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; color: #e1c699; border-bottom: 1px solid #5c4322; padding-bottom: 2px;">Scoreboard</div>
+            <div id="leaderboard-scores"></div>
+        </div>
+
+        <div class="bottom-hud-bar">
+            <p id="status-log"></p>
+            <div class="command-container">
+                <button id="mode-move" class="action-btn active-mode" onclick="setMode('MOVE')">Expand</button>
+                <button id="mode-well" class="action-btn" onclick="setMode('BUILD_OIL_WELL')">+ Oil Well (8 UP)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-window">
+        <div id="map-container">
+            <svg id="hex-grid" style="overflow: visible;"></svg>
+        </div>
+    </div>
+
+    <script>
+        const HEX_SIZE = 45;
+        const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+            ? 'http://localhost:3000/v1' 
+            : 'https://hexadune.onrender.com/v1'; 
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let gameId = urlParams.get('gameId');
+        if (!gameId) {
+            gameId = 'dune-lobby-standard';
+            window.history.replaceState(null, '', `?gameId=${gameId}`);
+        }
+        
+        let playerId = localStorage.getItem('hexadune_player_id');
+        if (!playerId) {
+            playerId = 'player-' + Math.random().toString(36).substring(2, 7);
+            localStorage.setItem('hexadune_player_id', playerId);
+        }
+        
+        let currentCommandMode = 'MOVE'; 
+        let tileElements = {}; 
+        let textElements = {};
+        let mapData = {};      
+        let mapGenerated = false;
+        let latestServerState = null;
+        let activeHoverTile = null; 
+        let costFetchAbortController = null;
+        const tooltip = document.getElementById('cost-tooltip');
+
+        function setMode(mode) {
+            currentCommandMode = mode;
+            document.getElementById('mode-move').className = mode === 'MOVE' ? 'action-btn active-mode' : 'action-btn';
+            document.getElementById('mode-well').className = mode === 'BUILD_OIL_WELL' ? 'action-btn active-mode' : 'action-btn';
+            if (activeHoverTile) {
+                triggerServerCostEvaluation(activeHoverTile.q, activeHoverTile.r, activeHoverTile.type);
+            }
+        }
+
+        function createNewLobby() {
+            const nextRoom = 'room-' + Math.random().toString(36).substring(2, 7);
+            window.location.search = `?gameId=${nextRoom}`;
+        }
+
+        function getDeterministicTerrain(q, r) {
+            let seedOffset = 0;
+            for (let i = 0; i < gameId.length; i++) seedOffset += gameId.charCodeAt(i) * (i + 1);
+            let dot1 = (q * 12.9898) + (r * 78.233) + (seedOffset * 0.123);
+            let dot2 = (q * 45.1312) + (r * 23.7198) - (seedOffset * 0.456);
+            let hash = Math.sin(dot1) * Math.cos(dot2) * 43758.5453123;
+            const rand = hash - Math.floor(hash);
+            return rand < 0.08 ? 'tower' : rand < 0.20 ? 'cactus' : 'sand';
+        }
+
+        function getNeighbors(q, r) {
+            return [
+                { q: q + 1, r: r },     
+                { q: q + 1, r: r - 1 }, 
+                { q: q, r: r - 1 }, 
+                { q: q - 1, r: r },     
+                { q: q - 1, r: r + 1 }, 
+                { q: q, r: r + 1 }  
+            ];
+        }
+
+        // --- AUTHORITATIVE SINGLE-SOURCE ASYNC REQUEST ROUTER ---
+        async function triggerServerCostEvaluation(q, r, type) {
+            if (type === 'cactus') {
+                tooltip.innerText = 'Cost: IMPASSABLE';
+                return;
+            }
+
+            if (costFetchAbortController) costFetchAbortController.abort();
+            costFetchAbortController = new AbortController();
+
+            tooltip.innerText = 'Calculating...';
+
+            try {
+                const response = await fetch(`${API_URL}/games/${gameId}/cost?playerId=${playerId}&q=${q}&r=${r}&mode=${currentCommandMode}`, {
+                    signal: costFetchAbortController.signal
+                });
+                const data = await response.json();
+                if (data.success) {
+                    tooltip.innerText = `Cost: ${data.cost}`;
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    tooltip.innerText = 'Cost: Error';
+                }
+            }
+        }
+
+        const svgGrid = document.getElementById('hex-grid');
+        const hexPoints = [];
+        for (let i = 0; i < 6; i++) {
+            const angle = Math.PI / 180 * (60 * i - 30);
+            hexPoints.push(`${HEX_SIZE * Math.cos(angle)},${HEX_SIZE * Math.sin(angle)}`);
+        }
+        const polygonPoints = hexPoints.join(' ');
+
+        function buildVisualGrid() {
+            svgGrid.innerHTML = '';
+            tileElements = {}; textElements = {};
+
+            Object.keys(mapData).forEach(key => {
+                const [q, r] = key.split(',').map(Number);
+                const x = HEX_SIZE * Math.sqrt(3) * (q + r / 2);
+                const y = HEX_SIZE * 3 / 2 * r;
+                const cell = mapData[key];
+
+                const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                group.setAttribute('transform', `translate(${x}, ${y})`);
+                
+                group.addEventListener('click', () => { if (!isDraggingMap) handleHexClick(q, r, cell.type); });
+                
+                group.addEventListener('mouseenter', () => {
+                    activeHoverTile = { q, r, type: cell.type };
+                    tooltip.style.display = 'block';
+                    triggerServerCostEvaluation(q, r, cell.type);
+                });
+                group.addEventListener('mousemove', (e) => {
+                    tooltip.style.left = e.clientX + 'px';
+                    tooltip.style.top = e.clientY + 'px';
+                });
+                group.addEventListener('mouseleave', () => {
+                    activeHoverTile = null;
+                    tooltip.style.display = 'none';
+                    if (costFetchAbortController) {
+                        costFetchAbortController.abort();
+                        costFetchAbortController = null;
+                    }
+                });
+
+                const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                polygon.setAttribute('points', polygonPoints);
+                polygon.classList.add('hex-polygon', `terrain-${cell.type}`);
+                group.appendChild(polygon);
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.classList.add('hex-text');
+                if (cell.type === 'cactus') text.textContent = '🌵';
+                if (cell.type === 'tower') text.textContent = '🗼';
+                group.appendChild(text);
+
+                svgGrid.appendChild(group);
+                tileElements[key] = polygon;
+                textElements[key] = text;
+            });
+        }
+
+        async function handleHexClick(q, r, type) {
+            if (type === 'cactus') {
+                document.getElementById('status-log').innerText = "🚫 Cactus terrain is impassable.";
+                return;
+            }
+
+            let targetAction = currentCommandMode;
+            if (targetAction === 'MOVE' && type === 'tower') targetAction = 'CONQUER_TOWER';
+
+            document.getElementById('status-log').innerText = "Processing vectors...";
+            try {
+                const res = await fetch(`${API_URL}/actions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameId, playerId, action: targetAction, targetCoords: { q, r } }),
+                });
+                
+                const data = await res.json();
+                
+                // FIXED: Explicit extraction of contextual database validation errors across 4xx and 5xx scopes
+                if(!res.ok || !data.success) {
+                    document.getElementById('status-log').innerText = `🚫 ${data.error || 'Server validation rejection.'}`;
+                } else {
+                    document.getElementById('status-log').innerText = `✨ Confirmed!`;
+                    updateWorldState(data.gameState);
+                    
+                    if (activeHoverTile) {
+                        triggerServerCostEvaluation(activeHoverTile.q, activeHoverTile.r, activeHoverTile.type);
+                    }
+                }
+            } catch (err) {
+                document.getElementById('status-log').innerText = "Server communication link fault.";
+            }
+        }
+
+        function updateWorldState(state) {
+            if (!state) return;
+            latestServerState = state;
+
+            const validTiles = state.validTiles || {};
+            const activePlayers = state.players || [];
+            const playerPoints = state.playerPoints || {};
+            const tileOwnership = state.tileOwnership || {};
+            const oilWells = state.oilWells || [];
+            const turnOrder = state.turnOrder || [];
+            const currentTurnIndex = state.currentTurnIndex !== undefined ? state.currentTurnIndex : 0;
+            const eliminatedPlayers = state.eliminatedPlayers || [];
+
+            if (Object.keys(validTiles).length > 0 && !mapGenerated) {
+                mapData = {};
+                Object.keys(validTiles).forEach(k => {
+                    const [q, r] = k.split(',').map(Number);
+                    mapData[k] = { type: getDeterministicTerrain(q, r) };
+                });
+                buildVisualGrid();
+                mapGenerated = true;
+            }
+
+            if (eliminatedPlayers.includes(playerId)) {
+                document.getElementById('loss-msg').innerText = "Your assets ran dry of Utility Points.";
+                document.getElementById('loss-screen').style.display = 'flex';
+            }
+
+            if (state.status && state.status.startsWith('won:')) {
+                const winner = state.status.split(':')[1];
+                if (winner === playerId) {
+                    document.getElementById('win-screen').style.display = 'flex';
+                } else {
+                    document.getElementById('loss-msg').innerText = `Player [${winner}] successfully secured complete dominance.`;
+                    document.getElementById('loss-screen').style.display = 'flex';
+                }
+            }
+
+            const myPoints = playerPoints[playerId] !== undefined ? playerPoints[playerId] : 0;
+            document.getElementById('currency-display').innerText = `${myPoints} UP`;
+
+            if (turnOrder.length > 0) {
+                const currentTurnPlayer = turnOrder[currentTurnIndex];
+                if (currentTurnPlayer === playerId) {
+                    document.getElementById('turn-indicator').innerHTML = `<span style="color: #2ecc71">YOUR TURN</span>`;
+                } else {
+                    const pIndex = activePlayers.indexOf(currentTurnPlayer);
+                    document.getElementById('turn-indicator').innerHTML = `WAITING: <span class="player-badge p${pIndex !== -1 ? pIndex + 1 : 1}-bg">${currentTurnPlayer}</span>`;
+                }
+            }
+
+            Object.keys(tileElements).forEach(key => {
+                if (mapData[key]) {
+                    tileElements[key].className.baseVal = `hex-polygon terrain-${mapData[key].type}`;
+                    if(mapData[key].type !== 'cactus' && mapData[key].type !== 'tower') {
+                        textElements[key].textContent = '';
+                    }
+                }
+            });
+
+            Object.keys(tileOwnership).forEach(key => {
+                if (tileElements[key]) {
+                    const idx = activePlayers.indexOf(tileOwnership[key]);
+                    if (idx !== -1) tileElements[key].classList.add(`owned-p${idx + 1}`);
+                }
+            });
+
+            oilWells.forEach(key => {
+                if(textElements[key]) textElements[key].textContent = '🛢️';
+            });
+
+            const board = document.getElementById('leaderboard-scores');
+            board.innerHTML = '';
+            activePlayers.forEach((p, idx) => {
+                const count = Object.values(tileOwnership).filter(id => id === p).length;
+                const balance = playerPoints[p] !== undefined ? playerPoints[p] : 0;
+                const deadLabel = eliminatedPlayers.includes(p) ? ' 💀' : '';
+                board.innerHTML += `
+                    <div style="margin: 4px 0; display: flex; justify-content: space-between; align-items: center; font-size: 0.8em;">
+                        <div>
+                            <span class="player-badge p${idx + 1}-bg">${p}</span>${deadLabel}
+                        </div>
+                        <span><b>${count}H</b> (${balance}U)</span>
+                    </div>`;
+            });
+        }
+
+        async function fetchStateUpdate() {
+            try {
+                const res = await fetch(`${API_URL}/games/${gameId}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.success && data.gameState) {
+                    updateWorldState(data.gameState);
+                    return data.gameState;
+                }
+            } catch (err) { console.error("Sync error:", err); }
+            return null;
+        }
+
+        async function connectAndJoinSession() {
+            document.getElementById('join-action-btn').disabled = true;
+            
+            const state = await fetchStateUpdate();
+            
+            let targetQ = 0, targetR = 0;
+            if (state && state.players) {
+                const slot = state.players.indexOf(playerId) !== -1 ? state.players.indexOf(playerId) : state.players.length;
+                const spawnSpots = [{ q: -5, r: -2 }, { q: 5, r: -3 }, { q: 0, r: 5 }];
+                let candidate = spawnSpots[slot % spawnSpots.length];
+                targetQ = candidate.q;
+                targetR = candidate.r;
+                
+                let key = `${targetQ},${targetR}`;
+                if ((state.validTiles && !state.validTiles[key]) || getDeterministicTerrain(targetQ, targetR) === 'cactus') {
+                    const fallbacks = Object.keys(state.validTiles || {}).filter(k => getDeterministicTerrain(...k.split(',').map(Number)) !== 'cactus');
+                    if (fallbacks.length > 0) {
+                        const selection = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+                        [targetQ, targetR] = selection.split(',').map(Number);
+                    }
+                }
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/actions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameId, playerId, action: 'MOVE', targetCoords: { q: targetQ, r: targetR } }),
+                });
+                const data = await res.json();
+                if (data.success && data.gameState) {
+                    updateWorldState(data.gameState);
+                }
+            } catch(e) {
+                console.error("Spawn drop sequence failed.", e);
+            }
+
+            document.getElementById('join-screen').style.display = 'none';
+            setInterval(fetchStateUpdate, 1000);
+        }
+
+        // --- CAMERA PAN AND ZOOM ENGAGEMENT ---
+        const gameWindow = document.getElementById('game-window');
+        const mapContainer = document.getElementById('map-container');
+        let isPointerDown = false, isDraggingMap = false, startX, startY;
+        let currentTranslateX = window.innerWidth / 2, currentTranslateY = window.innerHeight / 2, currentScale = 0.8;
+
+        function updateTransform() { mapContainer.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`; }
+        updateTransform();
+
+        gameWindow.addEventListener('mousedown', (e) => { isPointerDown = true; isDraggingMap = false; startX = e.clientX - currentTranslateX; startY = e.clientY - currentTranslateY; });
+        window.addEventListener('mousemove', (e) => {
+            if (!isPointerDown) return;
+            if (Math.abs(e.clientX - currentTranslateX - startX) > 4) isDraggingMap = true;
+            if (isDraggingMap) { currentTranslateX = e.clientX - startX; currentTranslateY = e.clientY - startY; updateTransform(); }
+        });
+        window.addEventListener('mouseup', () => { isPointerDown = false; });
+        
+        gameWindow.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isPointerDown = true; isDraggingMap = false;
+                startX = e.touches[0].clientX - currentTranslateX;
+                startY = e.touches[0].clientY - currentTranslateY;
+            }
+        });
+        window.addEventListener('touchmove', (e) => {
+            if (!isPointerDown || e.touches.length !== 1) return;
+            isDraggingMap = true;
+            currentTranslateX = e.touches[0].clientX - startX;
+            currentTranslateY = e.touches[0].clientY - startY;
+            updateTransform();
+        });
+        window.addEventListener('touchend', () => { isPointerDown = false; });
+
+        gameWindow.addEventListener('wheel', (e) => {
+            e.preventDefault(); 
+            const zoomDirection = e.deltaY < 0 ? 1 : -1;
+            const newScale = Math.min(Math.max(0.3, currentScale + (zoomDirection * 0.08)), 3.0);
+            const ratio = newScale / currentScale;
+            currentTranslateX = e.clientX - (e.clientX - currentTranslateX) * ratio;
+            currentTranslateY = e.clientY - (e.clientY - currentTranslateY) * ratio;
+            currentScale = newScale;
+            updateTransform();
+        }, { passive: false });
+    </script>
+</body>
+</html>

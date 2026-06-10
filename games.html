@@ -323,7 +323,7 @@
                 document.getElementById('current-username').value = cookieUser;
             } else {
                 // Otherwise fall back to local storage
-                const savedUser = localStorage.getItem('hexadune_username');
+                const savedUser = localStorage.getItem('hexadune_player_id ');
                 if (savedUser) document.getElementById('current-username').value = savedUser;
             }
             
@@ -366,7 +366,7 @@
                 alert("Username cannot be blank.");
                 return;
             }
-            localStorage.setItem('hexadune_username', val);
+            localStorage.setItem('hexadune_player_id', val);
             alert("Commander Handle Updated: " + val);
         }
 

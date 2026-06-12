@@ -275,7 +275,8 @@
         }
 
         function createNewLobby() {
-            window.location = `/games`;
+            const nextRoom = 'room-' + Math.random().toString(36).substring(2, 7);
+            window.location = `./games`;
         }
 
         function getDeterministicTerrain(q, r) {

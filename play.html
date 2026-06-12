@@ -72,12 +72,10 @@
             box-sizing: border-box; backdrop-filter: blur(5px); align-items: center;
         }
 
-        /* Isolated nested layout block for core gameplay vectors */
         .action-sub-group {
             display: flex; gap: 8px; flex: 3;
         }
 
-        /* Isolated safety block on the right for forfeit metrics */
         .danger-sub-group {
             display: flex; flex: 1; border-left: 2px solid #5c4322; padding-left: 8px;
         }
@@ -99,7 +97,6 @@
         .action-btn:active { transform: scale(0.97); }
         .active-mode { background: #b88d54 !important; color: white !important; border-color: #e1c699 !important; }
 
-        /* Danger variant for isolated safety frame */
         .danger-btn { background: #b23b3b !important; color: #fff !important; border-color: #5c1a1a !important; }
         .danger-btn:hover { background: #d34848 !important; border-color: #b23b3b !important; }
 
@@ -148,21 +145,38 @@
             display: none; transform: translate(15px, 15px);
         }
 
+        /* --- EXPLOSION PARTICLE SYSTEM --- */
+        @keyframes particle-burst {
+            0% {
+                transform: translate(0px, 0px) scale(1);
+                opacity: 1;
+                fill: #ffa502;
+            }
+            30% {
+                fill: #ff4757;
+                opacity: 1;
+            }
+            70% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(0.2);
+                opacity: 0;
+                fill: #ffffff;
+            }
+        }
+        
+        .explosion-particle {
+            animation: particle-burst 1.5s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+            pointer-events: none;
+        }
+
         /* --- MOBILE SCREEN MEDIA TUNING --- */
         @media (max-width: 600px) {
             .hud-card { font-size: 0.75em; padding: 6px 10px; }
             #leaderboard { display: none; }
             .action-btn { font-size: 0.75em; padding: 10px 4px; }
             #status-log { font-size: 0.75em; }
-        }
-        /* --- bom stuff --- */
-        @keyframes bomb-blast {
-            0% { fill: #ff4757; stroke: #ff4757; opacity: 0.9; }
-            30% { fill: #ffa502; stroke: #ffa502; }
-            100% { fill: initial; stroke: initial; opacity: 1; }
-        }
-        .hex-polygon.bomb-animated {
-            animation: bomb-blast 0.6s ease-in-out;
         }
     </style>
 </head>
@@ -183,7 +197,7 @@
     <div id="win-screen" class="endgame-modal">
         <div class="modal-body" style="border-color: #2ecc71;">
             <h1 style="font-size: 2.5em; color: #2ecc71; margin: 0 0 15px 0;">VICTORY</h1>
-            <p style="font-size: 1.1em; margin: 0;" id="win-msg">You have conquered the desert space maps!</p>
+            <p style="font-size: 1.1em; margin: 0;" id="win-msg">You have conquered all there is to conquer. Congratulations.</p>
             <button class="action-btn active-mode" style="margin-top: 25px; font-size: 1em; padding: 12px;" onclick="createNewLobby()">Join New Match Room</button>
         </div>
     </div>
@@ -191,7 +205,7 @@
     <div id="loss-screen" class="endgame-modal">
         <div class="modal-body" style="border-color: #e74c3c;">
             <h1 style="font-size: 2.5em; color: #e74c3c; margin: 0 0 15px 0;">DEFEAT</h1>
-            <p style="font-size: 1.1em; margin: 0;" id="loss-msg">Your balance reached 0 UP and went bankrupt.</p>
+            <p style="font-size: 1.1em; margin: 0;" id="loss-msg">You have been defeated.</p>
             <button class="action-btn" style="margin-top: 25px; font-size: 1em; padding: 12px; background: #e74c3c; color: white; border: none;" onclick="createNewLobby()">Return to Main Lobby</button>
         </div>
     </div>
@@ -230,10 +244,6 @@
     </div>
 
     <script>
-
-
-        
-        //cookie helper :0
         function getCookie(name) {
             const value = `; ${document.cookie}`;
             const parts = value.split(`; ${name}=`);
@@ -251,20 +261,12 @@
             gameId = 'dune-lobby-standard';
             window.history.replaceState(null, '', `?gameId=${gameId}`);
         }
-        
-        /*let playerId = localStorage.getItem('hexadune_player_id');
-        if (!playerId) {
-            playerId = 'player-' + Math.random().toString(36).substring(2, 7);
-            localStorage.setItem('hexadune_player_id', playerId);
-        }*/
-        
 
         let playerId = getCookie('hexadune_player_id');
         if (!playerId) {
                 playerId = 'player-' + Math.random().toString(36).substring(2, 7);
-                document.cookie = `hexadune_player_id=${encodeURIComponent(playerId)}; max-age=86400; path=/`;
+                document.cookie = `hexadune_hexadune_player_id=${encodeURIComponent(playerId)}; max-age=86400; path=/`;
         }
-
 
         let currentCommandMode = 'MOVE'; 
         let tileElements = {}; 
@@ -288,7 +290,6 @@
         }
 
         function createNewLobby() {
-            const nextRoom = 'room-' + Math.random().toString(36).substring(2, 7);
             window.location = `./games`;
         }
 
@@ -313,7 +314,6 @@
             ];
         }
 
-        // --- AUTHORITATIVE SINGLE-SOURCE ASYNC REQUEST ROUTER ---
         async function triggerServerCostEvaluation(q, r, type) {
             if (type === 'cactus') {
                 tooltip.innerText = 'Cost: IMPASSABLE';
@@ -417,23 +417,10 @@
                 
                 const data = await res.json();
                 
-                // FIXED: Explicit extraction of contextual database validation errors across 4xx and 5xx scopes
                 if(!res.ok || !data.success) {
                     document.getElementById('status-log').innerText = `🚫 ${data.error || 'Server validation rejection.'}`;
                 } else {
                     document.getElementById('status-log').innerText = `✨ Confirmed!`;
-                    
-                    // --- BOMB/MISSILE ANIMATION TRIGGER ---
-                    if (targetAction === 'BOMB' || targetAction === 'MISSILE') {
-                        const key = `${q},${r}`;
-                        if (tileElements[key]) {
-                            tileElements[key].classList.add('bomb-animated');
-                            setTimeout(() => {
-                                tileElements[key].classList.remove('bomb-animated');
-                            }, 600);
-                        }
-                    }
-
                     updateWorldState(data.gameState);
                     
                     if (activeHoverTile) {
@@ -445,31 +432,29 @@
             }
         }
 
-        // --- FORFEIT SEQUENCE REQUEST MANAGER ---
         async function triggerForfeitSequence() {
             if (!confirm("Are you sure you want to forfeit this simulation match?")) return;
 
             document.getElementById('status-log').innerText = "Transmitting forfeit vectors...";
             try {
-                const res = await fetch(`${API_URL}/actions`, {
+                await fetch(`${API_URL}/actions`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ gameId, playerId, action: 'FORFEIT' }),
                 });
-                const data = await res.json();
                 
                 document.getElementById('loss-msg').innerText = "Tactical operational retreat. Match abandoned.";
                 document.getElementById('loss-screen').style.display = 'flex';
             } catch (err) {
-                // Fallback UI termination frame if server fails connection
                 document.getElementById('loss-msg').innerText = "Tactical operational retreat. Match abandoned.";
                 document.getElementById('loss-screen').style.display = 'flex';
             }
         }
 
+        let previousTileOwnership = {};
+
         function updateWorldState(state) {
             if (!state) return;
-            latestServerState = state;
 
             const validTiles = state.validTiles || {};
             const activePlayers = state.players || [];
@@ -479,6 +464,17 @@
             const turnOrder = state.turnOrder || [];
             const currentTurnIndex = state.currentTurnIndex !== undefined ? state.currentTurnIndex : 0;
             const eliminatedPlayers = state.eliminatedPlayers || [];
+
+            // --- DETECT BOMB/MISSILE DETONATIONS GLOBALLY ---
+            if (latestServerState && latestServerState.tileOwnership) {
+                const prevOwnership = latestServerState.tileOwnership;
+                Object.keys(prevOwnership).forEach(key => {
+                    if (prevOwnership[key] && !tileOwnership[key]) {
+                        triggerGlobalExplosion(key);
+                    }
+                });
+            }
+            previousTileOwnership = { ...tileOwnership };
 
             if (Object.keys(validTiles).length > 0 && !mapGenerated) {
                 mapData = {};
@@ -490,9 +486,14 @@
                 mapGenerated = true;
             }
 
-            if (eliminatedPlayers.includes(playerId)) {
-                document.getElementById('loss-msg').innerText = "Your assets ran dry of Utility Points.";
+            const myPoints = playerPoints[playerId] !== undefined ? playerPoints[playerId] : 0;
+            document.getElementById('currency-display').innerText = `${myPoints} UP`;
+
+            // --- EMANCIPATION/DEFEAT OVERLAY CHECK ---
+            if (eliminatedPlayers.includes(playerId) || myPoints <= 0) {
+                document.getElementById('loss-msg').innerText = "Your assets ran dry of Utility Points or you have been eliminated.";
                 document.getElementById('loss-screen').style.display = 'flex';
+                return;
             }
 
             if (state.status && state.status.startsWith('won:')) {
@@ -504,9 +505,6 @@
                     document.getElementById('loss-screen').style.display = 'flex';
                 }
             }
-
-            const myPoints = playerPoints[playerId] !== undefined ? playerPoints[playerId] : 0;
-            document.getElementById('currency-display').innerText = `${myPoints} UP`;
 
             if (turnOrder.length > 0) {
                 const currentTurnPlayer = turnOrder[currentTurnIndex];
@@ -552,14 +550,48 @@
                         <span><b>${count}H</b> (${balance}U)</span>
                     </div>`;
             });
+            
+            latestServerState = state;
+        }
+
+        // --- RADIATING FIREWORK PARTICLE EXPLOSION (GLOBAL HELPER) ---
+        function triggerGlobalExplosion(tileKey) {
+            const [q, r] = tileKey.split(',').map(Number);
+            const hexCenterX = HEX_SIZE * Math.sqrt(3) * (q + r / 2);
+            const hexCenterY = HEX_SIZE * 3 / 2 * r;
+            
+            const particleCount = 20;
+            const fireworkColors = ['#ffa502', '#ff4757', '#ffda79', '#ff6b81'];
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                particle.setAttribute('cx', hexCenterX);
+                particle.setAttribute('cy', hexCenterY);
+                particle.setAttribute('r', Math.random() * 6 + 8);
+                
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * 100 + 40;
+                const targetX = Math.cos(angle) * distance;
+                const targetY = Math.sin(angle) * distance;
+                
+                particle.style.setProperty('--tx', `${targetX}px`);
+                particle.style.setProperty('--ty', `${targetY}px`);
+                
+                const randomColor = fireworkColors[Math.floor(Math.random() * fireworkColors.length)];
+                particle.style.fill = randomColor;
+                
+                particle.classList.add('explosion-particle');
+                svgGrid.appendChild(particle);
+
+                setTimeout(() => {
+                    particle.remove();
+                }, 1500);
+            }
         }
 
         async function fetchStateUpdate() {
             try {
-                // Extract visibility from the address bar URL, default to public
                 const queryVisibility = urlParams.get('visibility') || 'public';
-                
-                // Pass it to the server during the initial fetch
                 const res = await fetch(`${API_URL}/games/${gameId}?visibility=${queryVisibility}`);
                 if (!res.ok) return;
                 const data = await res.json();
@@ -574,7 +606,6 @@
         async function connectAndJoinSession() {
             document.getElementById('join-action-btn').disabled = true;
             
-            // Extract visibility from the address bar URL
             const queryVisibility = urlParams.get('visibility') || 'public';
             const state = await fetchStateUpdate();
             
@@ -600,7 +631,6 @@
                 const res = await fetch(`${API_URL}/actions`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // ADD VISIBILITY TO THE SERVER PAYLOAD HERE:
                     body: JSON.stringify({ 
                         gameId, 
                         playerId, 
@@ -621,7 +651,7 @@
             setInterval(fetchStateUpdate, 1000);
         }
 
-        // --- CAMERA PAN AND ZOOM ENGAGEMENT ---
+        // --- CAMERA PAN AND ZOOM ---
         const gameWindow = document.getElementById('game-window');
         const mapContainer = document.getElementById('map-container');
         let isPointerDown = false, isDraggingMap = false, startX, startY;
@@ -675,11 +705,9 @@
             measurementId: "G-N451F03F5J"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
 
-        // Logout Function
         function handleLogout() {
             auth.signOut().then(() => {
                 window.location.href = "./index.html";
@@ -688,7 +716,6 @@
             });
         }
 
-        // THE GUARD: Check authentication state
         auth.onAuthStateChanged((user) => {
             if (!user) {
                 window.location.href = "./index.html"; 

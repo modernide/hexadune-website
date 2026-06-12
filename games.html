@@ -342,7 +342,7 @@
                     data.lobbies.forEach(lobby => {
                         gamesListContainer.innerHTML += `
                             <div class="game-row">
-                                <span><b>${escapeHtml(lobby.gameId)}</b> <small style="opacity: 0.8; display:block;">${lobby.playerCount}/3 Players - Active</small></span>
+                                <span><b>${escapeHtml(lobby.gameId)}</b> <small style="opacity: 0.8; display:block;">${lobby.playerCount}/4 Players - Active</small></span>
                                 <button class="btn-secondary" onclick="joinLobby('${lobby.gameId}')">Join</button>
                             </div>
                         `;

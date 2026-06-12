@@ -466,11 +466,13 @@
             }
 
             if (eliminatedPlayers.includes(playerId)) {
+                if (pollingInterval) clearInterval(pollingInterval);
                 document.getElementById('loss-msg').innerText = "Your assets ran dry of Utility Points.";
                 document.getElementById('loss-screen').style.display = 'flex';
             }
 
             if (state.status && state.status.startsWith('won:')) {
+                if (pollingInterval) clearInterval(pollingInterval);
                 const winner = state.status.split(':')[1];
                 if (winner === playerId) {
                     document.getElementById('win-screen').style.display = 'flex';
@@ -529,15 +531,16 @@
             });
         }
 
-       async function fetchStateUpdate() {
+        async function fetchStateUpdate() {
             try {
                 const queryVisibility = urlParams.get('visibility') || 'public';
                 const res = await fetch(`${API_URL}/games/${gameId}?visibility=${queryVisibility}`);
                 
                 if (!res.ok) {
-                    // If the database purged the record, but we already recorded a win/loss state, keep showing it
+                    // Inspect the last valid cached state if the database row was purged
                     if (latestServerState) {
                         if (latestServerState.status && latestServerState.status.startsWith('won:')) {
+                            if (pollingInterval) clearInterval(pollingInterval);
                             const winner = latestServerState.status.split(':')[1];
                             if (winner === playerId) {
                                 document.getElementById('win-screen').style.display = 'flex';
@@ -546,6 +549,7 @@
                                 document.getElementById('loss-screen').style.display = 'flex';
                             }
                         } else if (latestServerState.eliminatedPlayers && latestServerState.eliminatedPlayers.includes(playerId)) {
+                            if (pollingInterval) clearInterval(pollingInterval);
                             document.getElementById('loss-msg').innerText = "Your assets ran dry of Utility Points.";
                             document.getElementById('loss-screen').style.display = 'flex';
                         }

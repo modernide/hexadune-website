@@ -247,6 +247,8 @@
     </div>
 
     <script>
+        const localSelectedColor = localStorage.getItem('hexadune_player_color') || '#3b82f6';
+        
         function getCookie(name) {
             const value = `; ${document.cookie}`;
             const parts = value.split(`; ${name}=`);
@@ -410,6 +412,18 @@
             let targetAction = currentCommandMode;
             if (targetAction === 'MOVE' && type === 'tower') targetAction = 'CONQUER_TOWER';
 
+            const res = await fetch(`${API_URL}/actions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    gameId, 
+                    playerId, 
+                    action: targetAction, 
+                    targetCoords: { q, r },
+                    playerColor: localSelectedColor // <--- Sent to server on turn updates
+                }),
+            });
+
             document.getElementById('status-log').innerText = "Processing vectors...";
             try {
                 const res = await fetch(`${API_URL}/actions`, {
@@ -467,6 +481,7 @@
             const turnOrder = state.turnOrder || [];
             const currentTurnIndex = state.currentTurnIndex !== undefined ? state.currentTurnIndex : 0;
             const eliminatedPlayers = state.eliminatedPlayers || [];
+            const playerColors = state.playerColors || {}; // Dynamic colors object from server
 
             // --- DETECT BOMB/MISSILE DETONATIONS GLOBALLY ---
             if (latestServerState && latestServerState.tileOwnership) {
@@ -477,7 +492,6 @@
                     }
                 });
             }
-            previousTileOwnership = { ...tileOwnership };
 
             if (Object.keys(validTiles).length > 0 && !mapGenerated) {
                 mapData = {};
@@ -492,8 +506,8 @@
             const myPoints = playerPoints[playerId] !== undefined ? playerPoints[playerId] : 0;
             document.getElementById('currency-display').innerText = `${myPoints} UP`;
 
-            // --- EMANCIPATION/DEFEAT OVERLAY CHECK ---
-            if (eliminatedPlayers.includes(playerId) || myPoints <= 0) {
+            // --- ELIMINATION OVERLAY CHECK ---
+            if (eliminatedPlayers.includes(playerId) || (mapGenerated && myPoints <= 0 && Object.values(tileOwnership).filter(o => o === playerId).length === 0)) {
                 document.getElementById('loss-msg').innerText = "Your assets ran dry of Utility Points or you have been eliminated.";
                 document.getElementById('loss-screen').style.display = 'flex';
                 return;
@@ -509,19 +523,14 @@
                 }
             }
 
-            if (turnOrder.length > 0) {
-                const currentTurnPlayer = turnOrder[currentTurnIndex];
-                if (currentTurnPlayer === playerId) {
-                    document.getElementById('turn-indicator').innerHTML = `<span style="color: #2ecc71">YOUR TURN</span>`;
-                } else {
-                    const pIndex = activePlayers.indexOf(currentTurnPlayer);
-                    document.getElementById('turn-indicator').innerHTML = `WAITING: <span class="player-badge p${pIndex !== -1 ? pIndex + 1 : 1}-bg">${currentTurnPlayer}</span>`;
-                }
-            }
-
+            // --- RENDER DYNAMIC COLORS ON TO THE HEX TILES ---
             Object.keys(tileElements).forEach(key => {
                 if (mapData[key]) {
+                    // Reset styling to standard terrain baseline colors
+                    tileElements[key].style.fill = "";
+                    tileElements[key].style.fillOpacity = "";
                     tileElements[key].className.baseVal = `hex-polygon terrain-${mapData[key].type}`;
+                    
                     if(mapData[key].type !== 'cactus' && mapData[key].type !== 'tower') {
                         textElements[key].textContent = '';
                     }
@@ -530,8 +539,12 @@
 
             Object.keys(tileOwnership).forEach(key => {
                 if (tileElements[key]) {
-                    const idx = activePlayers.indexOf(tileOwnership[key]);
-                    if (idx !== -1) tileElements[key].classList.add(`owned-p${idx + 1}`);
+                    const ownerId = tileOwnership[key];
+                    const hexColor = playerColors[ownerId] || '#3b82f6'; // Match exact synced server choice
+                    
+                    // Inject server synchronized hex vectors directly on elements
+                    tileElements[key].style.fill = hexColor;
+                    tileElements[key].style.fillOpacity = "0.65";
                 }
             });
 
@@ -539,21 +552,35 @@
                 if(textElements[key]) textElements[key].textContent = '🛢️';
             });
 
+            // --- UPDATE LEADERBOARD BADGES WITH CUSTOM COLORS ---
             const board = document.getElementById('leaderboard-scores');
             board.innerHTML = '';
             activePlayers.forEach((p, idx) => {
                 const count = Object.values(tileOwnership).filter(id => id === p).length;
                 const balance = playerPoints[p] !== undefined ? playerPoints[p] : 0;
                 const deadLabel = eliminatedPlayers.includes(p) ? ' 💀' : '';
+                const assignedColor = playerColors[p] || '#3b82f6';
+                
                 board.innerHTML += `
                     <div style="margin: 4px 0; display: flex; justify-content: space-between; align-items: center; font-size: 0.8em;">
                         <div>
-                            <span class="player-badge p${idx + 1}-bg">${p}</span>${deadLabel}
+                            <span class="player-badge" style="background-color: ${assignedColor}; color:#fff; padding:2px 6px; border-radius:10px;">${p}</span>${deadLabel}
                         </div>
                         <span><b>${count}H</b> (${balance}U)</span>
                     </div>`;
             });
             
+            // Render active Turn Indicator badge
+            if (turnOrder.length > 0) {
+                const currentTurnPlayer = turnOrder[currentTurnIndex];
+                if (currentTurnPlayer === playerId) {
+                    document.getElementById('turn-indicator').innerHTML = `<span style="color: #2ecc71">YOUR TURN</span>`;
+                } else {
+                    const activeColor = playerColors[currentTurnPlayer] || '#3b82f6';
+                    document.getElementById('turn-indicator').innerHTML = `WAITING: <span class="player-badge" style="background-color: ${activeColor}; color:white; padding:2px 6px; border-radius:10px;">${currentTurnPlayer}</span>`;
+                }
+            }
+
             latestServerState = state;
         }
 
@@ -639,7 +666,8 @@
                         playerId, 
                         action: 'MOVE', 
                         targetCoords: { q: targetQ, r: targetR },
-                        visibility: queryVisibility 
+                        visibility: queryVisibility,
+                        playerColor: localSelectedColor // <--- Sent to server on first join spawn drop
                     }),
                 });
                 const data = await res.json();

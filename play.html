@@ -529,14 +529,31 @@
             });
         }
 
-        async function fetchStateUpdate() {
+       async function fetchStateUpdate() {
             try {
-                // Extract visibility from the address bar URL, default to public
                 const queryVisibility = urlParams.get('visibility') || 'public';
-                
-                // Pass it to the server during the initial fetch
                 const res = await fetch(`${API_URL}/games/${gameId}?visibility=${queryVisibility}`);
-                if (!res.ok) return;
+                
+                if (!res.ok) {
+                    // If the database purged the record, but we already recorded a win/loss state, keep showing it
+                    if (latestServerState) {
+                        if (latestServerState.status && latestServerState.status.startsWith('won:')) {
+                            const winner = latestServerState.status.split(':')[1];
+                            if (winner === playerId) {
+                                document.getElementById('win-screen').style.display = 'flex';
+                            } else {
+                                document.getElementById('loss-msg').innerText = `Player [${winner}] successfully secured complete dominance.`;
+                                document.getElementById('loss-screen').style.display = 'flex';
+                            }
+                        } else if (latestServerState.eliminatedPlayers && latestServerState.eliminatedPlayers.includes(playerId)) {
+                            document.getElementById('loss-msg').innerText = "Your assets ran dry of Utility Points.";
+                            document.getElementById('loss-screen').style.display = 'flex';
+                        }
+                    }
+                    if (pollingInterval) clearInterval(pollingInterval);
+                    return null;
+                }
+
                 const data = await res.json();
                 if (data.success && data.gameState) {
                     updateWorldState(data.gameState);

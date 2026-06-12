@@ -220,6 +220,8 @@
 
     <script>
 
+
+        
         //cookie helper :0
         function getCookie(name) {
             const value = `; ${document.cookie}`;
@@ -273,8 +275,7 @@
         }
 
         function createNewLobby() {
-            const nextRoom = 'room-' + Math.random().toString(36).substring(2, 7);
-            window.location.search = `?gameId=${nextRoom}`;
+            window.location = `/games`;
         }
 
         function getDeterministicTerrain(q, r) {

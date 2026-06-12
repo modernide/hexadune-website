@@ -15,229 +15,132 @@
         /* --- PRE-GAME JOIN SCREEN OVERLAY --- */
         #join-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(43, 31, 19, 0.95); z-index: 20000;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: rgba(43, 31, 19, 0.95); z-index: 20000;\n            display: flex; flex-direction: column; justify-content: center; align-items: center;
             color: white; text-align: center; padding: 20px;
             box-sizing: border-box;
         }
         .join-body {
             background: #24190e; padding: 30px; border-radius: 16px;
             box-shadow: 0 0 30px rgba(0,0,0,0.6); border: 3px solid #b88d54;
-            max-width: 400px; width: 100%; box-sizing: border-box;
+            max-width: 440px; width: 100%; box-sizing: border-box;
+        }
+        .join-btn {
+            background: #8a6a3d; border: 2px solid #b88d54; padding: 12px 24px;
+            border-radius: 8px; color: white; font-weight: bold; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 1px; width: 100%; font-size: 1.1em;
+            transition: 0.2s ease;
+        }
+        .join-btn:hover { background: #5c3f1c; }
+
+        /* --- ENDGAME OVERLAYS --- */
+        #win-screen, #loss-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.85); z-index: 30000;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            color: white; text-align: center;
         }
 
-        /* --- GAME OVERLAY INFRASTRUCTURE --- */
-        #ui-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; display: flex; flex-direction: column;
-            justify-content: space-between; padding: 12px; box-sizing: border-box;
-            z-index: 10;
-        }
-
-        /* --- TOP STATS HEADER HUD --- */
-        .top-hud-bar {
-            display: flex; justify-content: space-between; align-items: center;
-            width: 100%; gap: 10px; pointer-events: auto;
-        }
-
-        .hud-card {
-            background: rgba(40, 26, 13, 0.88); color: #fff;
-            padding: 8px 14px; border-radius: 20px; border: 2px solid #b88d54;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 0.9em;
-            font-weight: bold; backdrop-filter: blur(4px);
-        }
-
-        .hud-card-accent { border-color: #e1c699; background: rgba(92, 67, 34, 0.9); }
-
-        /* --- SCOREBOARD SYSTEM --- */
-        #leaderboard {
-            position: absolute; top: 70px; left: 12px; width: 180px;
-            pointer-events: auto; background: rgba(40, 26, 13, 0.8);
-            border: 2px solid #8a6a3d; border-radius: 10px; padding: 10px;
-            color: #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            backdrop-filter: blur(3px);
-        }
-
-        /* --- BOTTOM CONTROLS RACK HUD --- */
-        .bottom-hud-bar {
-            width: 100%; display: flex; flex-direction: column;
-            align-items: center; gap: 8px; pointer-events: auto;
-            margin-top: auto;
-        }
-
-        .command-container {
-            background: rgba(40, 26, 13, 0.9); border: 2px solid #b88d54;
-            border-radius: 14px; padding: 8px; width: 100%; max-width: 650px;
-            box-shadow: 0 -4px 15px rgba(0,0,0,0.4); display: flex; gap: 8px;
-            box-sizing: border-box; backdrop-filter: blur(5px); align-items: center;
-        }
-
-        .action-sub-group {
-            display: flex; gap: 8px; flex: 3;
-        }
-
-        .danger-sub-group {
-            display: flex; flex: 1; border-left: 2px solid #5c4322; padding-left: 8px;
-        }
-
-        #status-log {
-            color: #ff9f43; font-weight: bold; font-size: 0.85em; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-            background: rgba(0,0,0,0.5); padding: 4px 12px; border-radius: 10px;
-            min-height: 1.2em; text-align: center; max-width: 90%; pointer-events: none;
-        }
-
-        /* --- BUTTON & ACTION SYSTEM --- */
-        .action-btn {
-            flex: 1; padding: 12px 6px; font-weight: bold; font-size: 0.85em;
-            border: 2px solid #8a6a3d; border-radius: 8px; cursor: pointer;
-            background: #fff; color: #3e2d1c; transition: all 0.2s;
-            text-transform: uppercase; letter-spacing: 0.5px;
-            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
-        }
-        .action-btn:active { transform: scale(0.97); }
-        .active-mode { background: #b88d54 !important; color: white !important; border-color: #e1c699 !important; }
-
-        .danger-btn { background: #b23b3b !important; color: #fff !important; border-color: #5c1a1a !important; }
-        .danger-btn:hover { background: #d34848 !important; border-color: #b23b3b !important; }
-
-        /* --- MAP FRAMEWORK --- */
+        /* --- CORE GAME LAYOUT --- */
         #game-window { width: 100%; height: 100%; cursor: grab; }
         #game-window:active { cursor: grabbing; }
         #map-container { position: absolute; transform-origin: 0 0; }
         
-        .hex-group { cursor: pointer; }
-        .hex-group:hover .hex-polygon { filter: brightness(1.1); stroke: #fff; stroke-width: 3; }
-        
-        .hex-polygon { stroke: #b88d54; stroke-width: 2; transition: fill 0.3s, stroke 0.2s; }
+        /* --- HEX GRID VECTOR PATTERNS --- */
+        .hex-polygon { stroke: #b88d54; stroke-width: 2; transition: fill 0.3s, stroke 0.2s; cursor: pointer; }
+        .hex-polygon:hover { stroke: #ffffff; stroke-width: 3; }
         .terrain-sand { fill: #e1c699; }
-        .terrain-cactus { fill: #d2b48c; }
+        .terrain-cactus { fill: #d2b48c; cursor: not-allowed; }
         .terrain-tower { fill: #e8cc9b; stroke: #8a6a3d; stroke-width: 4; }
         
-        .owned-p1 { fill: #ff4d4d !important; fill-opacity: 0.65; }
-        .owned-p2 { fill: #3399ff !important; fill-opacity: 0.65; }
-        .owned-p3 { fill: #00cc66 !important; fill-opacity: 0.65; }
-        
         .hex-text { font-size: 22px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
-        
-        .player-badge { display: inline-block; padding: 2px 6px; border-radius: 10px; font-weight: bold; color: white; font-size: 0.8em; }
-        .p1-bg { background-color: #ff4d4d; }
-        .p2-bg { background-color: #3399ff; }
-        .p3-bg { background-color: #00cc66; }
 
-        .owned-p4 { fill: #9933ff !important; fill-opacity: 0.65; } /* Example: Purple */
-        .p4-bg { background-color: #9933ff; }
-
-        /* --- END GAME MODAL OVERLAYS --- */
-        .endgame-modal {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0, 0, 0, 0.85); z-index: 10000;
-            display: none; flex-direction: column; justify-content: center; align-items: center;
-            color: white; font-family: sans-serif; text-align: center; padding: 20px;
-        }
-        .modal-body {
-            background: #24190e; padding: 30px; border-radius: 16px;
-            box-shadow: 0 0 25px rgba(0,0,0,0.5); border: 4px solid #fff; max-width: 400px;
-        }
-
-        /* --- CURSOR FLOATING COST DISPLAY --- */
-        #cost-tooltip {
-            position: fixed; pointer-events: none; z-index: 30000;
-            background: rgba(40, 26, 13, 0.95); color: #fff; padding: 6px 10px;
-            border-radius: 6px; font-size: 0.85em; font-weight: bold;
-            border: 2px solid #e1c699; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            display: none; transform: translate(15px, 15px);
-        }
-
-        /* --- EXPLOSION PARTICLE SYSTEM --- */
-        @keyframes particle-burst {
-            0% {
-                transform: translate(0px, 0px) scale(1);
-                opacity: 1;
-                fill: #ffa502;
-            }
-            30% {
-                fill: #ff4757;
-                opacity: 1;
-            }
-            70% {
-                opacity: 0.8;
-            }
-            100% {
-                transform: translate(var(--tx), var(--ty)) scale(0.2);
-                opacity: 0;
-                fill: #ffffff;
-            }
-        }
-        
+        /* --- HEAVY PARTICLES AND EXPLOSIONS --- */
         .explosion-particle {
-            animation: particle-burst 1.5s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
-            pointer-events: none;
+            position: absolute; pointer-events: none; border-radius: 50%;
+            background: radial-gradient(circle, #ff9900 0%, rgba(255,0,0,0) 70%);
+            z-index: 9999; transform: translate(-50%, -50%);
+            animation: blowup 0.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        }
+        @keyframes blowup {
+            0% { width: 0px; height: 0px; opacity: 1; }
+            100% { width: 180px; height: 180px; opacity: 0; }
         }
 
-        /* --- MOBILE SCREEN MEDIA TUNING --- */
-        @media (max-width: 600px) {
-            .hud-card { font-size: 0.75em; padding: 6px 10px; }
-            #leaderboard { display: none; }
-            .action-btn { font-size: 0.75em; padding: 10px 4px; }
-            #status-log { font-size: 0.75em; }
+        /* --- TOP INFORMATION HUD BAR --- */
+        #top-hud {
+            position: absolute; top: 15px; left: 15px; right: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            pointer-events: none; z-index: 100;
         }
+        .hud-panel {
+            background: rgba(43, 31, 19, 0.85); border: 2px solid #8a6a3d;
+            border-radius: 12px; padding: 10px 18px; color: #e1c699;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3); pointer-events: auto;
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        }
+        #currency-display { font-size: 1.6em; font-weight: 900; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.4); }
+        #turn-indicator { font-weight: bold; font-size: 1em; letter-spacing: 1px; text-transform: uppercase; }
+
+        /* --- LEADERBOARD CARD --- */
+        #leaderboard {
+            position: absolute; top: 90px; right: 15px; width: 220px;
+            background: rgba(43, 31, 19, 0.85); border: 2px solid #8a6a3d;
+            border-radius: 12px; padding: 12px; color: #e1c699;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3); z-index: 100;
+        }
+        .leaderboard-title {
+            font-size: 0.75rem; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1px; color: #b88d54; border-bottom: 1px solid rgba(138,106,61,0.3);
+            padding-bottom: 5px; margin-bottom: 8px;
+        }
+
+        /* --- COMBAT TACTICAL FOOTER HUD --- */
+        #action-dock {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 10px; background: rgba(24, 17, 10, 0.9);
+            border: 2px solid #8a6a3d; padding: 10px 16px; border-radius: 14px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4); z-index: 100;
+        }
+        .action-btn {
+            background: #3a2818; border: 1px solid #705331; padding: 8px 14px;
+            border-radius: 8px; color: #dcb37b; font-weight: bold; font-size: 0.85em;
+            cursor: pointer; transition: all 0.15s ease; text-transform: uppercase;
+            display: flex; flex-direction: column; align-items: center; gap: 2px;
+        }
+        .action-btn span { font-size: 0.75em; opacity: 0.7; font-weight: normal; }
+        .action-btn:hover { background: #523922; color: #fff; border-color: #b88d54; }
+        .action-btn.active { background: #8a6a3d; color: #fff; border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+
+        .btn-danger { background: #5c1d1d !important; border-color: #9c3a3a !important; color: #ffc8c8 !important; }
+        .btn-danger:hover { background: #802828 !important; color: #fff !important; }
     </style>
 </head>
 <body>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-
-    <div id="cost-tooltip">Loading vector...</div>
 
     <div id="join-screen">
         <div class="join-body">
-            <h1 style="font-size: 2.2em; color: #e1c699; margin: 0 0 10px 0; letter-spacing: 2px;">HEXADUNE</h1>
-            <p style="font-size: 0.95em; margin: 0 0 25px 0; color: #ccc; line-height: 1.4;">Establish tactical territory deployments and manage resource footprint nodes across the map.</p>
-            <button id="join-action-btn" class="action-btn active-mode" style="font-size: 1.1em; padding: 12px 30px; width: auto; border-radius: 25px;" onclick="connectAndJoinSession()">DEPLOY INTO MAP</button>
+            <h2 style="margin-top: 0; color: #e1c699; letter-spacing: 1px;">DEPLOYMENT MANIFEST</h2>
+            <p style="font-size: 0.9em; opacity: 0.8; line-height: 1.4; margin-bottom: 20px;">
+                Welcome Commander. You are preparing to drop into game session: <br>
+                <b id="manifest-game-id" style="color: #fff; font-size: 1.1em;">---</b>
+            </p>
+            <p style="font-size: 0.8em; color: #b88d54; font-weight: bold; margin-bottom: 25px;">
+                CLICK A VALID SAND TILE BELOW TO DEFINE YOUR INITIAL EXPEDITION DROP POINT, THEN INITIATE DEPLOYMENT.
+            </p>
+            <button class="join-btn" onclick="executeLobbyDropSequence()">Authorize Drop</button>
         </div>
     </div>
 
-    <div id="win-screen" class="endgame-modal">
-        <div class="modal-body" style="border-color: #2ecc71;">
-            <h1 style="font-size: 2.5em; color: #2ecc71; margin: 0 0 15px 0;">VICTORY</h1>
-            <p style="font-size: 1.1em; margin: 0;" id="win-msg">You have conquered all there is to conquer. Congratulations.</p>
-            <button class="action-btn active-mode" style="margin-top: 25px; font-size: 1em; padding: 12px;" onclick="createNewLobby()">Join New Match Room</button>
-        </div>
+    <div id="win-screen">
+        <h1 style="color: #2ecc71; font-size: 3.5em; margin-bottom: 10px;">VICTORY</h1>
+        <p style="font-size: 1.2em; max-width: 500px; margin-bottom: 30px;">You have successfully achieved greater than 50% landmass dominance. The simulation is complete.</p>
+        <button class="join-btn" style="width: auto;" onclick="window.location.href='games.html'">Return to Command</button>
     </div>
 
-    <div id="loss-screen" class="endgame-modal">
-        <div class="modal-body" style="border-color: #e74c3c;">
-            <h1 style="font-size: 2.5em; color: #e74c3c; margin: 0 0 15px 0;">DEFEAT</h1>
-            <p style="font-size: 1.1em; margin: 0;" id="loss-msg">You have been defeated.</p>
-            <button class="action-btn" style="margin-top: 25px; font-size: 1em; padding: 12px; background: #e74c3c; color: white; border: none;" onclick="createNewLobby()">Return to Main Lobby</button>
-        </div>
-    </div>
-
-    <div id="ui-layer">
-        <div class="top-hud-bar">
-            <div class="hud-card" id="turn-indicator">Connecting...</div>
-            <div class="hud-card hud-card-accent" id="currency-display">0 UP</div>
-        </div>
-        
-        <div id="leaderboard">
-            <div style="font-size: 0.8em; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; color: #e1c699; border-bottom: 1px solid #5c4322; padding-bottom: 2px;">Scoreboard</div>
-            <div id="leaderboard-scores"></div>
-        </div>
-
-        <div class="bottom-hud-bar">
-            <p id="status-log"></p>
-            <div class="command-container">
-                <div class="action-sub-group">
-                    <button id="mode-move" class="action-btn active-mode" onclick="setMode('MOVE')">Expand</button>
-                    <button id="mode-well" class="action-btn" onclick="setMode('BUILD_OIL_WELL')">+ Oil Well<br/>(8 UP)</button>
-                    <button id="mode-bomb" class="action-btn" onclick="setMode('BOMB')">Bomb<br/>(50 UP)</button>
-                    <button id="mode-missile" class="action-btn" onclick="setMode('MISSILE')">Missile<br/>(150 UP)</button>
-                </div>
-                <div class="danger-sub-group">
-                    <button id="action-forfeit" class="action-btn danger-btn" onclick="triggerForfeitSequence()">FORFEIT</button>
-                </div>
-            </div>
-        </div>
+    <div id="loss-screen">
+        <h1 style="color: #e74c3c; font-size: 3.5em; margin-bottom: 10px;">DEFEATED</h1>
+        <p id="loss-msg" style="font-size: 1.2em; max-width: 500px; margin-bottom: 30px;">Your tactical assets have been fully neutralized.</p>
+        <button class="join-btn" style="width: auto; background: #c0392b;" onclick="window.location.href='games.html'">Return to Command</button>
     </div>
 
     <div id="game-window">
@@ -246,54 +149,70 @@
         </div>
     </div>
 
-    <script>
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
-        }
+    <div id="top-hud">
+        <div class="hud-panel">
+            <div id="currency-display">0 UP</div>
+        </div>
+        <div class="hud-panel">
+            <div id="turn-indicator">SYNCHRONIZING...</div>
+        </div>
+    </div>
 
+    <div id="leaderboard">
+        <div class="leaderboard-title">Operational Standing</div>
+        <div id="leaderboard-scores"></div>
+    </div>
+
+    <div id="action-dock">
+        <button class="action-btn active" id="mode-MOVE" onclick="setTacticalMode('MOVE')">🔑 Conquer / Move <span>Varies</span></button>\n        <button class="action-btn" id="mode-BUILD_OIL_WELL" onclick="setTacticalMode('BUILD_OIL_WELL')">🛢️ Build Rig <span>8 UP</span></button>
+        <button class="action-btn" id="mode-BOMB" onclick="setTacticalMode('BOMB')">💣 Launch Bomb <span>50 UP</span></button>
+        <button class="action-btn" id="mode-MISSILE" onclick="setTacticalMode('MISSILE')">🚀 ICBM Missile <span>150 UP</span></button>
+        <button class="action-btn btn-danger" onclick="triggerForfeit()">🏳️ Forfeit</button>
+    </div>
+
+    <script>
         const HEX_SIZE = 45;
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameId = urlParams.get('gameId') || 'DuneSimulation';
+        const queryVisibility = urlParams.get('visibility') || 'public';
+
+        // Retrieve player data and persistent color selection
+        const playerId = localStorage.getItem('hexadune_player_id') || 'Commander_' + Math.floor(Math.random() * 900);
+        const localSelectedColor = localStorage.getItem('hexadune_player_color') || '#3b82f6';
+
+        document.getElementById('manifest-game-id').innerText = gameId;
+
         const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
             ? 'http://localhost:3000/v1' 
-            : 'https://hexadune.onrender.com/v1'; 
+            : 'https://hexadune.onrender.com/v1';
 
-        const urlParams = new URLSearchParams(window.location.search);
-        let gameId = urlParams.get('gameId');
-        if (!gameId) {
-            gameId = 'dune-lobby-standard';
-            window.history.replaceState(null, '', `?gameId=${gameId}`);
-        }
-
-        let playerId = getCookie('hexadune_player_id');
-        if (!playerId) {
-                playerId = 'player-' + Math.random().toString(36).substring(2, 7);
-                document.cookie = `hexadune_hexadune_player_id=${encodeURIComponent(playerId)}; max-age=86400; path=/`;
-        }
-
-        let currentCommandMode = 'MOVE'; 
-        let tileElements = {}; 
-        let textElements = {};
-        let mapData = {};      
+        let activeTacticalMode = 'MOVE'; 
         let mapGenerated = false;
         let latestServerState = null;
-        let activeHoverTile = null; 
-        let costFetchAbortController = null;
-        const tooltip = document.getElementById('cost-tooltip');
+        let selectedSpawnCoords = null; 
 
-        function setMode(mode) {
-            currentCommandMode = mode;
-            document.getElementById('mode-move').className = mode === 'MOVE' ? 'action-btn active-mode' : 'action-btn';
-            document.getElementById('mode-well').className = mode === 'BUILD_OIL_WELL' ? 'action-btn active-mode' : 'action-btn';
-            document.getElementById('mode-bomb').className = mode === 'BOMB' ? 'action-btn active-mode' : 'action-btn';
-            document.getElementById('mode-missile').className = mode === 'MISSILE' ? 'action-btn active-mode' : 'action-btn';
-            if (activeHoverTile) {
-                triggerServerCostEvaluation(activeHoverTile.q, activeHoverTile.r, activeHoverTile.type);
-            }
+        let tileElements = {};
+        let textElements = {};
+        let mapData = {};
+
+        // --- CAMERA INTERACTION STATE ---
+        const gameWindow = document.getElementById('game-window');
+        const mapContainer = document.getElementById('map-container');
+        let isPointerDown = false, startX, startY;
+        let currentTranslateX = window.innerWidth / 2;
+        let currentTranslateY = window.innerHeight / 2;
+        let currentScale = 0.65;
+
+        function updateTransform() { 
+            mapContainer.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`; 
         }
 
-        function createNewLobby() {
-            window.location = `./games`;
+        // --- UTILITY/NEIGHBOR LOOKUP AND TERRAIN FUNCTIONS ---
+        function getNeighbors(q, r) {
+            return [
+                { q: q + 1, r: r }, { q: q + 1, r: r - 1 }, { q: q, r: r - 1 },
+                { q: q - 1, r: r }, { q: q - 1, r: r + 1 }, { q: q, r: r + 1 }
+            ];
         }
 
         function getDeterministicTerrain(q, r) {
@@ -306,155 +225,73 @@
             return rand < 0.08 ? 'tower' : rand < 0.20 ? 'cactus' : 'sand';
         }
 
-        function getNeighbors(q, r) {
-            return [
-                { q: q + 1, r: r },     
-                { q: q + 1, r: r - 1 }, 
-                { q: q, r: r - 1 }, 
-                { q: q - 1, r: r },     
-                { q: q - 1, r: r + 1 }, 
-                { q: q, r: r + 1 }  
-            ];
-        }
-
-        async function triggerServerCostEvaluation(q, r, type) {
-            if (type === 'cactus') {
-                tooltip.innerText = 'Cost: IMPASSABLE';
-                return;
-            }
-
-            if (costFetchAbortController) costFetchAbortController.abort();
-            costFetchAbortController = new AbortController();
-
-            tooltip.innerText = 'Calculating...';
-
-            try {
-                const response = await fetch(`${API_URL}/games/${gameId}/cost?playerId=${playerId}&q=${q}&r=${r}&mode=${currentCommandMode}`, {
-                    signal: costFetchAbortController.signal
-                });
-                const data = await response.json();
-                if (data.success) {
-                    tooltip.innerText = `Cost: ${data.cost}`;
-                }
-            } catch (err) {
-                if (err.name !== 'AbortError') {
-                    tooltip.innerText = 'Cost: Error';
-                }
-            }
-        }
-
-        const svgGrid = document.getElementById('hex-grid');
-        const hexPoints = [];
-        for (let i = 0; i < 6; i++) {
-            const angle = Math.PI / 180 * (60 * i - 30);
-            hexPoints.push(`${HEX_SIZE * Math.cos(angle)},${HEX_SIZE * Math.sin(angle)}`);
-        }
-        const polygonPoints = hexPoints.join(' ');
-
+        // --- MAP BUILDER ENGINE ---
         function buildVisualGrid() {
+            const svgGrid = document.getElementById('hex-grid');
             svgGrid.innerHTML = '';
-            tileElements = {}; textElements = {};
+            tileElements = {};
+            textElements = {};
 
-            Object.keys(mapData).forEach(key => {
+            const hexPoints = [];
+            for (let i = 0; i < 6; i++) {
+                const angle = Math.PI / 180 * (60 * i - 30);
+                hexPoints.push(`${HEX_SIZE * Math.cos(angle)},${HEX_SIZE * Math.sin(angle)}`);
+            }
+            const polygonPoints = hexPoints.join(' ');
+
+            Object.keys(latestServerState.validTiles).forEach(key => {
                 const [q, r] = key.split(',').map(Number);
                 const x = HEX_SIZE * Math.sqrt(3) * (q + r / 2);
                 const y = HEX_SIZE * 3 / 2 * r;
-                const cell = mapData[key];
+                const type = mapData[key].type;
 
                 const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
                 group.setAttribute('transform', `translate(${x}, ${y})`);
-                
-                group.addEventListener('click', () => { if (!isDraggingMap) handleHexClick(q, r, cell.type); });
-                
-                group.addEventListener('mouseenter', () => {
-                    activeHoverTile = { q, r, type: cell.type };
-                    tooltip.style.display = 'block';
-                    triggerServerCostEvaluation(q, r, cell.type);
-                });
-                group.addEventListener('mousemove', (e) => {
-                    tooltip.style.left = e.clientX + 'px';
-                    tooltip.style.top = e.clientY + 'px';
-                });
-                group.addEventListener('mouseleave', () => {
-                    activeHoverTile = null;
-                    tooltip.style.display = 'none';
-                    if (costFetchAbortController) {
-                        costFetchAbortController.abort();
-                        costFetchAbortController = null;
-                    }
-                });
 
                 const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
                 polygon.setAttribute('points', polygonPoints);
-                polygon.classList.add('hex-polygon', `terrain-${cell.type}`);
+                polygon.classList.add('hex-polygon', `terrain-${type}`);
+                polygon.onclick = () => handleHexClick(q, r);
+                
                 group.appendChild(polygon);
+                tileElements[key] = polygon;
 
                 const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 text.classList.add('hex-text');
-                if (cell.type === 'cactus') text.textContent = '🌵';
-                if (cell.type === 'tower') text.textContent = '🗼';
+                if (type === 'cactus') text.textContent = '🌵';
+                if (type === 'tower') text.textContent = '🗼';
+                
                 group.appendChild(text);
-
-                svgGrid.appendChild(group);
-                tileElements[key] = polygon;
                 textElements[key] = text;
+                svgGrid.appendChild(group);
             });
         }
 
-        async function handleHexClick(q, r, type) {
-            if (type === 'cactus') {
-                document.getElementById('status-log').innerText = "🚫 Cactus terrain is impassable.";
-                return;
-            }
+        // --- ACTION SELECTION CONFIGURATOR ---
+        function setTacticalMode(mode) {
+            activeTacticalMode = mode;
+            document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(`mode-${mode}`);
+            if (activeBtn) activeBtn.classList.add('active');
+        }
 
-            let targetAction = currentCommandMode;
-            if (targetAction === 'MOVE' && type === 'tower') targetAction = 'CONQUER_TOWER';
-
-            document.getElementById('status-log').innerText = "Processing vectors...";
+        // --- ENGINE POLLING AND DATA PIPE SYNC ---
+        async function synchroniseGameLoop() {
             try {
-                const res = await fetch(`${API_URL}/actions`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ gameId, playerId, action: targetAction, targetCoords: { q, r } }),
-                });
-                
+                const res = await fetch(`${API_URL}/games/${encodeURIComponent(gameId)}?visibility=${queryVisibility}`);
                 const data = await res.json();
-                
-                if(!res.ok || !data.success) {
-                    document.getElementById('status-log').innerText = `🚫 ${data.error || 'Server validation rejection.'}`;
-                } else {
-                    document.getElementById('status-log').innerText = `✨ Confirmed!`;
+                if (data.success) {
                     updateWorldState(data.gameState);
                     
-                    if (activeHoverTile) {
-                        triggerServerCostEvaluation(activeHoverTile.q, activeHoverTile.r, activeHoverTile.type);
+                    // If player is already mapped in from an earlier state, drop the overlay barrier
+                    if (data.gameState.players.includes(playerId)) {
+                        document.getElementById('join-screen').style.display = 'none';
                     }
                 }
             } catch (err) {
-                document.getElementById('status-log').innerText = "Server communication link fault.";
+                console.error("Critical failure during engine synchronization pass:", err);
             }
         }
-
-        async function triggerForfeitSequence() {
-            if (!confirm("Are you sure you want to forfeit this simulation match?")) return;
-
-            document.getElementById('status-log').innerText = "Transmitting forfeit vectors...";
-            try {
-                await fetch(`${API_URL}/actions`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ gameId, playerId, action: 'FORFEIT' }),
-                });
-                
-                document.getElementById('loss-msg').innerText = "Tactical operational retreat. Match abandoned.";
-                document.getElementById('loss-screen').style.display = 'flex';
-            } catch (err) {
-                document.getElementById('loss-msg').innerText = "Tactical operational retreat. Match abandoned.";
-                document.getElementById('loss-screen').style.display = 'flex';
-            }
-        }
-
-        let previousTileOwnership = {};
 
         function updateWorldState(state) {
             if (!state) return;
@@ -467,6 +304,7 @@
             const turnOrder = state.turnOrder || [];
             const currentTurnIndex = state.currentTurnIndex !== undefined ? state.currentTurnIndex : 0;
             const eliminatedPlayers = state.eliminatedPlayers || [];
+            const serverPlayerColors = state.playerColors || {}; 
 
             // --- DETECT BOMB/MISSILE DETONATIONS GLOBALLY ---
             if (latestServerState && latestServerState.tileOwnership) {
@@ -477,7 +315,6 @@
                     }
                 });
             }
-            previousTileOwnership = { ...tileOwnership };
 
             if (Object.keys(validTiles).length > 0 && !mapGenerated) {
                 mapData = {};
@@ -492,8 +329,8 @@
             const myPoints = playerPoints[playerId] !== undefined ? playerPoints[playerId] : 0;
             document.getElementById('currency-display').innerText = `${myPoints} UP`;
 
-            // --- EMANCIPATION/DEFEAT OVERLAY CHECK ---
-            if (eliminatedPlayers.includes(playerId) || myPoints <= 0) {
+            // --- ELIMINATION OVERLAY CHECK ---
+            if (eliminatedPlayers.includes(playerId) || (mapGenerated && myPoints <= 0 && Object.values(tileOwnership).filter(o => o === playerId).length === 0)) {
                 document.getElementById('loss-msg').innerText = "Your assets ran dry of Utility Points or you have been eliminated.";
                 document.getElementById('loss-screen').style.display = 'flex';
                 return;
@@ -509,19 +346,33 @@
                 }
             }
 
-            if (turnOrder.length > 0) {
-                const currentTurnPlayer = turnOrder[currentTurnIndex];
-                if (currentTurnPlayer === playerId) {
-                    document.getElementById('turn-indicator').innerHTML = `<span style="color: #2ecc71">YOUR TURN</span>`;
-                } else {
-                    const pIndex = activePlayers.indexOf(currentTurnPlayer);
-                    document.getElementById('turn-indicator').innerHTML = `WAITING: <span class="player-badge p${pIndex !== -1 ? pIndex + 1 : 1}-bg">${currentTurnPlayer}</span>`;
-                }
-            }
+            // --- COLOR COLLISION RESOLUTION ALGORITHM ---
+            const backupColors = ['#f59e0b', '#8b5cf6', '#ec4899', '#10b981', '#ef4444', '#3b82f6'];
+            const resolvedPlayerColors = {};
+            const trackingColorsUsed = new Set();
 
+            activePlayers.forEach((p) => {
+                let preferredColor = serverPlayerColors[p] || '#3b82f6';
+                
+                if (trackingColorsUsed.has(preferredColor)) {
+                    let replacementColor = backupColors.find(c => !trackingColorsUsed.has(c));
+                    if (!replacementColor) {
+                        replacementColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                    }
+                    preferredColor = replacementColor;
+                }
+                
+                resolvedPlayerColors[p] = preferredColor;
+                trackingColorsUsed.add(preferredColor);
+            });
+
+            // --- RENDER DYNAMIC COLORS ON TO THE HEX TILES ---
             Object.keys(tileElements).forEach(key => {
                 if (mapData[key]) {
+                    tileElements[key].style.fill = "";
+                    tileElements[key].style.fillOpacity = "";
                     tileElements[key].className.baseVal = `hex-polygon terrain-${mapData[key].type}`;
+                    
                     if(mapData[key].type !== 'cactus' && mapData[key].type !== 'tower') {
                         textElements[key].textContent = '';
                     }
@@ -530,8 +381,11 @@
 
             Object.keys(tileOwnership).forEach(key => {
                 if (tileElements[key]) {
-                    const idx = activePlayers.indexOf(tileOwnership[key]);
-                    if (idx !== -1) tileElements[key].classList.add(`owned-p${idx + 1}`);
+                    const ownerId = tileOwnership[key];
+                    const hexColor = resolvedPlayerColors[ownerId]; 
+                    
+                    tileElements[key].style.fill = hexColor;
+                    tileElements[key].style.fillOpacity = "0.65";
                 }
             });
 
@@ -539,97 +393,116 @@
                 if(textElements[key]) textElements[key].textContent = '🛢️';
             });
 
+            // --- UPDATE LEADERBOARD BADGES WITH RESOLVED COLORS ---
             const board = document.getElementById('leaderboard-scores');
             board.innerHTML = '';
             activePlayers.forEach((p, idx) => {
                 const count = Object.values(tileOwnership).filter(id => id === p).length;
                 const balance = playerPoints[p] !== undefined ? playerPoints[p] : 0;
                 const deadLabel = eliminatedPlayers.includes(p) ? ' 💀' : '';
+                const assignedColor = resolvedPlayerColors[p]; 
+                
                 board.innerHTML += `
                     <div style="margin: 4px 0; display: flex; justify-content: space-between; align-items: center; font-size: 0.8em;">
                         <div>
-                            <span class="player-badge p${idx + 1}-bg">${p}</span>${deadLabel}
+                            <span class="player-badge" style="background-color: ${assignedColor}; color:#fff; padding:2px 6px; border-radius:10px;">${p}</span>${deadLabel}
                         </div>
                         <span><b>${count}H</b> (${balance}U)</span>
                     </div>`;
             });
             
+            // Render active Turn Indicator badge
+            if (turnOrder.length > 0) {
+                const currentTurnPlayer = turnOrder[currentTurnIndex];
+                if (currentTurnPlayer === playerId) {
+                    document.getElementById('turn-indicator').innerHTML = `<span style="color: #2ecc71">YOUR TURN</span>`;
+                } else {
+                    const activeColor = resolvedPlayerColors[currentTurnPlayer]; 
+                    document.getElementById('turn-indicator').innerHTML = `WAITING: <span class="player-badge" style="background-color: ${activeColor}; color:white; padding:2px 6px; border-radius:10px;">${currentTurnPlayer}</span>`;
+                }
+            }
+
             latestServerState = state;
         }
 
-        // --- RADIATING FIREWORK PARTICLE EXPLOSION (GLOBAL HELPER) ---
+        // --- LOCAL COORDINATE CONVERSION DETONATION FX ---
         function triggerGlobalExplosion(tileKey) {
             const [q, r] = tileKey.split(',').map(Number);
-            const hexCenterX = HEX_SIZE * Math.sqrt(3) * (q + r / 2);
-            const hexCenterY = HEX_SIZE * 3 / 2 * r;
+            const x = HEX_SIZE * Math.sqrt(3) * (q + r / 2);
+            const y = HEX_SIZE * 3 / 2 * r;
+
+            // Project hex canvas vectors to window coordinate space
+            const windowX = (x * currentScale) + currentTranslateX;
+            const windowY = (y * currentScale) + currentTranslateY;
+
+            const p = document.createElement('div');
+            p.classList.add('explosion-particle');
+            p.style.left = `${windowX}px`;
+            p.style.top = `${windowY}px`;
             
-            const particleCount = 20;
-            const fireworkColors = ['#ffa502', '#ff4757', '#ffda79', '#ff6b81'];
-
-            for (let i = 0; i < particleCount; i++) {
-                const particle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                particle.setAttribute('cx', hexCenterX);
-                particle.setAttribute('cy', hexCenterY);
-                particle.setAttribute('r', Math.random() * 6 + 8);
-                
-                const angle = Math.random() * Math.PI * 2;
-                const distance = Math.random() * 100 + 40;
-                const targetX = Math.cos(angle) * distance;
-                const targetY = Math.sin(angle) * distance;
-                
-                particle.style.setProperty('--tx', `${targetX}px`);
-                particle.style.setProperty('--ty', `${targetY}px`);
-                
-                const randomColor = fireworkColors[Math.floor(Math.random() * fireworkColors.length)];
-                particle.style.fill = randomColor;
-                
-                particle.classList.add('explosion-particle');
-                svgGrid.appendChild(particle);
-
-                setTimeout(() => {
-                    particle.remove();
-                }, 1500);
-            }
+            document.body.appendChild(p);
+            setTimeout(() => p.remove(), 600);
         }
 
-        async function fetchStateUpdate() {
+        // --- INTERACTION ACTION RESOLUTION PIPELINE ---
+        async function handleHexClick(q, r) {
+            const tileKey = `${q},${r}`;
+            
+            // Handle pre-game initial deployment drop selection state
+            if (document.getElementById('join-screen').style.display !== 'none') {
+                if (mapData[tileKey] && mapData[tileKey].type === 'sand') {
+                    selectedSpawnCoords = { q, r };
+                    Object.keys(tileElements).forEach(k => tileElements[k].style.stroke = "");
+                    tileElements[tileKey].style.stroke = "#ffffff";
+                    tileElements[tileKey].style.strokeWidth = "4px";
+                } else {
+                    alert("Drops cannot map onto Towers or Cacti zones.");
+                }
+                return;
+            }
+
+            // Normal Gameplay Actions Pass
+            let targetAction = activeTacticalMode;
+            if (mapData[tileKey] && mapData[tileKey].type === 'tower' && targetAction === 'MOVE') {
+                targetAction = 'CONQUER_TOWER';
+            }
+
             try {
-                const queryVisibility = urlParams.get('visibility') || 'public';
-                const res = await fetch(`${API_URL}/games/${gameId}?visibility=${queryVisibility}`);
-                if (!res.ok) return;
-                const data = await res.json();
-                if (data.success && data.gameState) {
-                    updateWorldState(data.gameState);
-                    return data.gameState;
+                const costRes = await fetch(`${API_URL}/games/${encodeURIComponent(gameId)}/cost?playerId=${encodeURIComponent(playerId)}&q=${q}&r=${r}&mode=${targetAction}`);
+                const costData = await costRes.json();
+                
+                if (costData.success) {
+                    if (!confirm(`Execute operational ${targetAction} strategy here? Cost estimate: ${costData.cost} UP.`)) return;
                 }
-            } catch (err) { console.error("Sync error:", err); }
-            return null;
+
+                const res = await fetch(`${API_URL}/actions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        gameId, 
+                        playerId, 
+                        action: targetAction, 
+                        targetCoords: { q, r },
+                        playerColor: localSelectedColor 
+                    }),
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    updateWorldState(data.gameState);
+                } else {
+                    alert(`Action Blocked: ${data.error}`);
+                }
+            } catch (err) {
+                console.error("Networking connection error during action deployment:", err);
+            }
         }
 
-        async function connectAndJoinSession() {
-            document.getElementById('join-action-btn').disabled = true;
-            
-            const queryVisibility = urlParams.get('visibility') || 'public';
-            const state = await fetchStateUpdate();
-            
-            let targetQ = 0, targetR = 0;
-            if (state && state.players) {
-                const slot = state.players.indexOf(playerId) !== -1 ? state.players.indexOf(playerId) : state.players.length;
-                const spawnSpots = [{ q: -5, r: -2 }, { q: 5, r: -3 }, { q: 0, r: 5 }];
-                let candidate = spawnSpots[slot % spawnSpots.length];
-                targetQ = candidate.q;
-                targetR = candidate.r;
-                
-                let key = `${targetQ},${targetR}`;
-                if ((state.validTiles && !state.validTiles[key]) || getDeterministicTerrain(targetQ, targetR) === 'cactus') {
-                    const fallbacks = Object.keys(state.validTiles || {}).filter(k => getDeterministicTerrain(...k.split(',').map(Number)) !== 'cactus');
-                    if (fallbacks.length > 0) {
-                        const selection = fallbacks[Math.floor(Math.random() * fallbacks.length)];
-                        [targetQ, targetR] = selection.split(',').map(Number);
-                    }
-                }
+        async function executeLobbyDropSequence() {
+            if (!selectedSpawnCoords) {
+                alert("Please select a sand hexagon layout vector on the viewport map first.");
+                return;
             }
-
             try {
                 const res = await fetch(`${API_URL}/actions`, {
                     method: 'POST',
@@ -638,49 +511,69 @@
                         gameId, 
                         playerId, 
                         action: 'MOVE', 
-                        targetCoords: { q: targetQ, r: targetR },
-                        visibility: queryVisibility 
+                        targetCoords: selectedSpawnCoords,
+                        visibility: queryVisibility,
+                        playerColor: localSelectedColor 
                     }),
                 });
                 const data = await res.json();
-                if (data.success && data.gameState) {
+                if (data.success) {
+                    document.getElementById('join-screen').style.display = 'none';
                     updateWorldState(data.gameState);
+                } else {
+                    alert(`Deployment Rejected: ${data.error}`);
                 }
-            } catch(e) {
-                console.error("Spawn drop sequence failed.", e);
+            } catch (err) {
+                alert("Could not connect to deployment mainframe infrastructure.");
             }
-
-            document.getElementById('join-screen').style.display = 'none';
-            setInterval(fetchStateUpdate, 1000);
         }
 
-        // --- CAMERA PAN AND ZOOM ---
-        const gameWindow = document.getElementById('game-window');
-        const mapContainer = document.getElementById('map-container');
-        let isPointerDown = false, isDraggingMap = false, startX, startY;
-        let currentTranslateX = window.innerWidth / 2, currentTranslateY = window.innerHeight / 2, currentScale = 0.8;
+        async function triggerForfeit() {
+            if (!confirm("Confirm catastrophic manual self-destruct layout? All holding assets turn neutral immediately.")) return;
+            try {
+                const res = await fetch(`${API_URL}/actions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameId, playerId, action: 'FORFEIT' }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window.location.href = 'games.html';
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
 
-        function updateTransform() { mapContainer.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`; }
+        // --- RUN ENGINE ---
         updateTransform();
+        synchroniseGameLoop().then(() => {
+            setInterval(synchroniseGameLoop, 2000);
+        });
 
-        gameWindow.addEventListener('mousedown', (e) => { isPointerDown = true; isDraggingMap = false; startX = e.clientX - currentTranslateX; startY = e.clientY - currentTranslateY; });
+        // --- DESKTOP AND MOBILE EVENT LISTENERS FOR PAN/ZOOM NAVIGATION ---
+        gameWindow.addEventListener('mousedown', (e) => { 
+            isPointerDown = true; 
+            startX = e.clientX - currentTranslateX; 
+            startY = e.clientY - currentTranslateY; 
+        });
         window.addEventListener('mousemove', (e) => {
             if (!isPointerDown) return;
-            if (Math.abs(e.clientX - currentTranslateX - startX) > 4) isDraggingMap = true;
-            if (isDraggingMap) { currentTranslateX = e.clientX - startX; currentTranslateY = e.clientY - startY; updateTransform(); }
+            currentTranslateX = e.clientX - startX; 
+            currentTranslateY = e.clientY - startY; 
+            updateTransform();
         });
         window.addEventListener('mouseup', () => { isPointerDown = false; });
         
         gameWindow.addEventListener('touchstart', (e) => {
             if (e.touches.length === 1) {
-                isPointerDown = true; isDraggingMap = false;
+                isPointerDown = true;
                 startX = e.touches[0].clientX - currentTranslateX;
                 startY = e.touches[0].clientY - currentTranslateY;
             }
         });
         window.addEventListener('touchmove', (e) => {
             if (!isPointerDown || e.touches.length !== 1) return;
-            isDraggingMap = true;
             currentTranslateX = e.touches[0].clientX - startX;
             currentTranslateY = e.touches[0].clientY - startY;
             updateTransform();
@@ -688,94 +581,21 @@
         window.addEventListener('touchend', () => { isPointerDown = false; });
 
         gameWindow.addEventListener('wheel', (e) => {
-            e.preventDefault(); 
+            e.preventDefault();
             const zoomDirection = e.deltaY < 0 ? 1 : -1;
-            const newScale = Math.min(Math.max(0.3, currentScale + (zoomDirection * 0.08)), 3.0);
+            const newScale = Math.min(Math.max(0.2, currentScale + (zoomDirection * 0.05)), 1.8);
             const ratio = newScale / currentScale;
+            
             currentTranslateX = e.clientX - (e.clientX - currentTranslateX) * ratio;
             currentTranslateY = e.clientY - (e.clientY - currentTranslateY) * ratio;
             currentScale = newScale;
             updateTransform();
         }, { passive: false });
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCJLvQXWf21el_qFGubIqWBBWmJIQREZc4",
-            authDomain: "hexadune.firebaseapp.com",
-            projectId: "hexadune",
-            storageBucket: "hexadune.firebasestorage.app",
-            messagingSenderId: "1044415457830",
-            appId: "1:1044415457830:web:97a4a9820b2f880d1f94e7",
-            measurementId: "G-N451F03F5J"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-
-        function handleLogout() {
-            auth.signOut().then(() => {
-                window.location.href = "./index.html";
-            }).catch((error) => {
-                console.error("Logout Error:", error);
-            });
-        }
-
-        auth.onAuthStateChanged((user) => {
-            if (!user) {
-                window.location.href = "./index.html"; 
-            } else {
-                console.log("Welcome to Hexadune, " + user.displayName);
-                console.log(`\x1b[32m--- GAME RULES ---
-                \x1b[31m=TERRAIN=
-                1) SAND: STANDARD BUILDABLE/CAPTURABLE TERRAIN
-                2) CACTUS: IMPASSABLE TERRAIN, CANNOT OCCUPY OR BUILD
-                3) TOWERS: CONQUERING CAPTURES ALL ITS ADJACENT SAND TILES AUTOMATICALLY
-                THE TERRAIN LAYOUT IS GENERATED DETERMINISTICALLY BASED ON COORDINATES AND THE GAMEID, SO ALL PLAYERS SEE THE SAME MAP
-                
-                \x1b[32m=ECONOMY AND INCOME=
-                UTILITY POINTS: THE CURRENCY USED FOR ALL ACTIONS. PLAYERS START WITH 12 UP UPON JOINING
-                INCOME TICKS: AT THE END OF EVERY TURN, INCOME IS CALCULATED AND ADDED TO THE NEXT PLAYER'S BALANCE
-                STANDARD OWNED TILE: +1 UP PER TURN
-                OIL WELL TILE: +4 UP PER TICK
-                
-                \x1b[31m=ACTIONS & COSTS=
-                SPAWNING / MOVEMENT RULES:
-                1) PLAYERS DROP ONTO DESIGNATED SPAWN SPOTS
-                2) SUBSEQUENT MOVES/EXPANSIONS MUST BE ADJACENT TO AN ALREADY OWNED TILE. NON-ADJACENT MOVES ARE BLOCKED AS 'ISOLATED'
-                \x1b[32mCAPTURE COSTS:
-                1) UNOCCUPIED TILE: 2 UP
-                2) ENEMY-CONTROLLED TILE: 4 UP
-                3) TILE ADJACENT TO A TOWER (WHEN CAPTURING FROM AN ENEMY): +3 UP SURCHARGE
-                4) CONTESTED/PREVIOUSLY CAPTURED TILE: COST SCALES EXPONENTIALLY AS COST DOUBLES EVERY TIME IT IS CLAIMED
-                5) OWNED TILE (MOVING ONTO SELF): 0 UP
-                \x1b[31mBUILD OIL WELL:
-                1) CAN ONLY BE BUILT ON A TILE ALREADY FULLY CONTROLLED BY THE PLAYER
-                2) COST: 8 UP. A TILE CAN ONLY HOST ONE WELL
-                BOMBS:
-                1) COST: 50 UP
-                2) CAN ONLY ATTACK A TILE OF ANOTHER PLAYER THAT IS TOUCHING YOUR OWN
-                3) RESETS TILE COST AND OWNERSHIP
-                MISSILES:
-                1) COST: 150 UP
-                2) RESETS TILE COST AND OWNERSHIP
-                3) CAN ATTACK ANY TILE ON THE MAP
-                
-                \x1b[32m=FORFEITTING=
-                INSTANTLY BOOTS YOU FROM THE GAME, YOUR TILES GO BACK TO DEFAULT
-                
-                \x1b[31m=TURN & ELIMINATION MECHANICS=
-                TURN ORDER: PLAY ROTATES IN "FIRST COME FIRST SERVE" ORDER, IE THE FIRST PLAYER TO JOIN GOES FIRST. 
-                ACTIONS ARE STRICTLY RESTRICTED TO THE ACTIVE PLAYER'S TURN.
-
-               \x1b[32m=BANKRUPTCY & ELIMINATION=
-                AT THE START OF A PLAYER'S TURN, THE SYSTEM CALCULATES IF THEY CAN AFFORD TO PLAY
-                IF A PLAYER OWNS 0 TILES, OR THEIR ENDING BALANCE (CURRENT POINTS + EXPECTED INCOME) FALLS BELOW THE BASE_CAPTURE_COST (2 UP), THEY ARE DECLARED BANKRUPT
-                BANKRUPT PLAYERS ARE ELIMINATED AND ALL THEIR OWNED TILES ARE CLEARED
-
-                \x1b[31m=WIN CONDITIONS=
-                A MATCH IMMEDIATELY ENDS IN A VICTORY IF:
-                1) TERRITORIAL DOMINANCE: A SINGLE PLAYER CONTROLS MORE THAN 50% OF THE TOTAL MAINLAND LANDMASS TILES
-                2) ELIMINATION: ALL OTHER PLAYERS ARE ELIMINATED AND ONLY ONE ACTIVE PLAYER REMAINS`)
-            }
+        window.addEventListener('resize', () => {
+            currentTranslateX = window.innerWidth / 2;
+            currentTranslateY = window.innerHeight / 2;
+            updateTransform();
         });
     </script>
 </body>

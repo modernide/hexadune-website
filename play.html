@@ -155,6 +155,15 @@
             .action-btn { font-size: 0.75em; padding: 10px 4px; }
             #status-log { font-size: 0.75em; }
         }
+        /* --- bom stuff --- */
+        @keyframes bomb-blast {
+            0% { fill: #ff4757; stroke: #ff4757; opacity: 0.9; }
+            30% { fill: #ffa502; stroke: #ffa502; }
+            100% { fill: initial; stroke: initial; opacity: 1; }
+        }
+        .hex-polygon.bomb-animated {
+            animation: bomb-blast 0.6s ease-in-out;
+        }
     </style>
 </head>
 <body>
@@ -413,6 +422,18 @@
                     document.getElementById('status-log').innerText = `🚫 ${data.error || 'Server validation rejection.'}`;
                 } else {
                     document.getElementById('status-log').innerText = `✨ Confirmed!`;
+                    
+                    // --- BOMB/MISSILE ANIMATION TRIGGER ---
+                    if (targetAction === 'BOMB' || targetAction === 'MISSILE') {
+                        const key = `${q},${r}`;
+                        if (tileElements[key]) {
+                            tileElements[key].classList.add('bomb-animated');
+                            setTimeout(() => {
+                                tileElements[key].classList.remove('bomb-animated');
+                            }, 600);
+                        }
+                    }
+
                     updateWorldState(data.gameState);
                     
                     if (activeHoverTile) {

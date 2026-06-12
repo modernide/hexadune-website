@@ -499,9 +499,28 @@
             return null;
         }
 
+        async function fetchStateUpdate() {
+            try {
+                // Extract visibility from the address bar URL, default to public
+                const queryVisibility = urlParams.get('visibility') || 'public';
+                
+                // Pass it to the server during the initial fetch
+                const res = await fetch(`${API_URL}/games/${gameId}?visibility=${queryVisibility}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.success && data.gameState) {
+                    updateWorldState(data.gameState);
+                    return data.gameState;
+                }
+            } catch (err) { console.error("Sync error:", err); }
+            return null;
+        }
+
         async function connectAndJoinSession() {
             document.getElementById('join-action-btn').disabled = true;
             
+            // Extract visibility from the address bar URL
+            const queryVisibility = urlParams.get('visibility') || 'public';
             const state = await fetchStateUpdate();
             
             let targetQ = 0, targetR = 0;
@@ -526,7 +545,14 @@
                 const res = await fetch(`${API_URL}/actions`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ gameId, playerId, action: 'MOVE', targetCoords: { q: targetQ, r: targetR } }),
+                    // ADD VISIBILITY TO THE SERVER PAYLOAD HERE:
+                    body: JSON.stringify({ 
+                        gameId, 
+                        playerId, 
+                        action: 'MOVE', 
+                        targetCoords: { q: targetQ, r: targetR },
+                        visibility: queryVisibility 
+                    }),
                 });
                 const data = await res.json();
                 if (data.success && data.gameState) {

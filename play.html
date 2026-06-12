@@ -67,14 +67,14 @@
 
         .command-container {
             background: rgba(40, 26, 13, 0.9); border: 2px solid #b88d54;
-            border-radius: 14px; padding: 8px; width: 100%; max-width: 500px;
+            border-radius: 14px; padding: 8px; width: 100%; max-width: 650px;
             box-shadow: 0 -4px 15px rgba(0,0,0,0.4); display: flex; gap: 8px;
             box-sizing: border-box; backdrop-filter: blur(5px); align-items: center;
         }
 
         /* Isolated nested layout block for core gameplay vectors */
         .action-sub-group {
-            display: flex; gap: 8px; flex: 2;
+            display: flex; gap: 8px; flex: 3;
         }
 
         /* Isolated safety block on the right for forfeit metrics */
@@ -203,7 +203,9 @@
             <div class="command-container">
                 <div class="action-sub-group">
                     <button id="mode-move" class="action-btn active-mode" onclick="setMode('MOVE')">Expand</button>
-                    <button id="mode-well" class="action-btn" onclick="setMode('BUILD_OIL_WELL')">+ Oil Well (8 UP)</button>
+                    <button id="mode-well" class="action-btn" onclick="setMode('BUILD_OIL_WELL')">+ Oil Well<br/>(8 UP)</button>
+                    <button id="mode-bomb" class="action-btn" onclick="setMode('BOMB')">Bomb<br/>(50 UP)</button>
+                    <button id="mode-missile" class="action-btn" onclick="setMode('MISSILE')">Missile<br/>(150 UP)</button>
                 </div>
                 <div class="danger-sub-group">
                     <button id="action-forfeit" class="action-btn danger-btn" onclick="triggerForfeitSequence()">FORFEIT</button>
@@ -269,6 +271,8 @@
             currentCommandMode = mode;
             document.getElementById('mode-move').className = mode === 'MOVE' ? 'action-btn active-mode' : 'action-btn';
             document.getElementById('mode-well').className = mode === 'BUILD_OIL_WELL' ? 'action-btn active-mode' : 'action-btn';
+            document.getElementById('mode-bomb').className = mode === 'BOMB' ? 'action-btn active-mode' : 'action-btn';
+            document.getElementById('mode-missile').className = mode === 'MISSILE' ? 'action-btn active-mode' : 'action-btn';
             if (activeHoverTile) {
                 triggerServerCostEvaluation(activeHoverTile.q, activeHoverTile.r, activeHoverTile.type);
             }
@@ -466,13 +470,11 @@
             }
 
             if (eliminatedPlayers.includes(playerId)) {
-                if (pollingInterval) clearInterval(pollingInterval);
                 document.getElementById('loss-msg').innerText = "Your assets ran dry of Utility Points.";
                 document.getElementById('loss-screen').style.display = 'flex';
             }
 
             if (state.status && state.status.startsWith('won:')) {
-                if (pollingInterval) clearInterval(pollingInterval);
                 const winner = state.status.split(':')[1];
                 if (winner === playerId) {
                     document.getElementById('win-screen').style.display = 'flex';
@@ -533,31 +535,12 @@
 
         async function fetchStateUpdate() {
             try {
+                // Extract visibility from the address bar URL, default to public
                 const queryVisibility = urlParams.get('visibility') || 'public';
-                const res = await fetch(`${API_URL}/games/${gameId}?visibility=${queryVisibility}`);
                 
-                if (!res.ok) {
-                    // Inspect the last valid cached state if the database row was purged
-                    if (latestServerState) {
-                        if (latestServerState.status && latestServerState.status.startsWith('won:')) {
-                            if (pollingInterval) clearInterval(pollingInterval);
-                            const winner = latestServerState.status.split(':')[1];
-                            if (winner === playerId) {
-                                document.getElementById('win-screen').style.display = 'flex';
-                            } else {
-                                document.getElementById('loss-msg').innerText = `Player [${winner}] successfully secured complete dominance.`;
-                                document.getElementById('loss-screen').style.display = 'flex';
-                            }
-                        } else if (latestServerState.eliminatedPlayers && latestServerState.eliminatedPlayers.includes(playerId)) {
-                            if (pollingInterval) clearInterval(pollingInterval);
-                            document.getElementById('loss-msg').innerText = "Your assets ran dry of Utility Points.";
-                            document.getElementById('loss-screen').style.display = 'flex';
-                        }
-                    }
-                    if (pollingInterval) clearInterval(pollingInterval);
-                    return null;
-                }
-
+                // Pass it to the server during the initial fetch
+                const res = await fetch(`${API_URL}/games/${gameId}?visibility=${queryVisibility}`);
+                if (!res.ok) return;
                 const data = await res.json();
                 if (data.success && data.gameState) {
                     updateWorldState(data.gameState);
@@ -687,11 +670,9 @@
         // THE GUARD: Check authentication state
         auth.onAuthStateChanged((user) => {
             if (!user) {
-                // If no user is logged in, send them back to the landing page
                 window.location.href = "./index.html"; 
             } else {
                 console.log("Welcome, " + user.displayName);
-                // You can now use user.uid to save their tree to MongoDB!
             }
         });
     </script>

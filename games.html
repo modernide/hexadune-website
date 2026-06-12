@@ -69,10 +69,10 @@
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
             width: 100%;
             max-width: 480px;
-            max-height: 80vh;
+            max-height: 85vh;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 0.8rem;
             pointer-events: auto; 
             box-sizing: border-box;
             overflow-y: auto; /* Card fits screen, scrolls internally if needed */
@@ -123,7 +123,7 @@
             transition: all 0.2s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-top: 0.5rem;
+            margin-top: 0.2rem;
         }
 
         .btn-primary:hover {
@@ -158,7 +158,7 @@
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin: 0.2rem 0;
+            margin: 0.1rem 0;
         }
 
         .divider::before, .divider::after {
@@ -263,6 +263,18 @@
                 </div>
             </div>
 
+            <div class="input-group">
+                <label for="player-color-select">Commander Accent Color</label>
+                <select id="player-color-select" class="styled-select" onchange="savePlayerColor()">
+                    <option value="#3b82f6">Dune Cobalt (Blue)</option>
+                    <option value="#ef4444">Solar Crimson (Red)</option>
+                    <option value="#10b981">Oasis Emerald (Green)</option>
+                    <option value="#f59e0b">Desert Amber (Gold)</option>
+                    <option value="#8b5cf6">Abyssal Violet (Purple)</option>
+                    <option value="#ec4899">Sands Rose (Pink)</option>
+                </select>
+            </div>
+
             <div class="divider">Active Public Lobbies</div>
 
             <div class="games-list-wrapper" id="games-list">
@@ -323,13 +335,27 @@
                 document.getElementById('current-username').value = cookieUser;
             } else {
                 // Otherwise fall back to local storage
-                const savedUser = localStorage.getItem('hexadune_player_id ');
+                const savedUser = localStorage.getItem('hexadune_player_id');
                 if (savedUser) document.getElementById('current-username').value = savedUser;
+            }
+
+            // Load saved color preference
+            const savedColor = localStorage.getItem('hexadune_player_color');
+            if (savedColor) {
+                document.getElementById('player-color-select').value = savedColor;
+            } else {
+                // Save default choice on load
+                savePlayerColor();
             }
             
             fetchPublicLobbies();
             setInterval(fetchPublicLobbies, 3000);
         });
+
+        function savePlayerColor() {
+            const selectedColor = document.getElementById('player-color-select').value;
+            localStorage.setItem('hexadune_player_color', selectedColor);
+        }
 
         async function fetchPublicLobbies() {
             try {
@@ -367,7 +393,7 @@
                 return;
             }
             document.cookie = `hexadune_player_id=${val}; max-age=86400; path=/`;
-            //localStorage.setItem('hexadune_player_id', val);
+            localStorage.setItem('hexadune_player_id', val);
             alert("Commander Handle Updated: " + val);
         }
 

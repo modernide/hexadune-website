@@ -355,6 +355,8 @@
         function savePlayerColor() {
             const selectedColor = document.getElementById('player-color-select').value;
             localStorage.setItem('hexadune_player_color', selectedColor);
+            // Re-inject cookie mirror to make sure server environment captures it if fallback reading triggers
+            document.cookie = `hexadune_player_color=${encodeURIComponent(selectedColor)}; max-age=86400; path=/`;
         }
 
         async function fetchPublicLobbies() {

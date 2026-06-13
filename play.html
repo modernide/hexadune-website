@@ -468,6 +468,11 @@
             const eliminatedPlayers = state.eliminatedPlayers || [];
             const serverPlayerColors = state.playerColors || {};
 
+            // Ensure our current chosen color is synced onto the state tracking maps if not present yet
+            if (activePlayers.includes(playerId) && !serverPlayerColors[playerId]) {
+                serverPlayerColors[playerId] = localSelectedColor;
+            }
+
             // --- DETECT BOMB/MISSILE DETONATIONS GLOBALLY ---
             if (latestServerState && latestServerState.tileOwnership) {
                 const prevOwnership = latestServerState.tileOwnership;
@@ -514,17 +519,25 @@
             const resolvedPlayerColors = {};
             const trackingColorsUsed = new Set();
 
+            // First pass: Assign preferences for active players prioritizing server configuration mapping maps
             activePlayers.forEach((p) => {
-                let preferredColor = serverPlayerColors[p] || '#3b82f6';
-                if (trackingColorsUsed.has(preferredColor)) {
+                let preferredColor = p === playerId ? localSelectedColor : (serverPlayerColors[p] || '#3b82f6');
+                if (!trackingColorsUsed.has(preferredColor)) {
+                    resolvedPlayerColors[p] = preferredColor;
+                    trackingColorsUsed.add(preferredColor);
+                }
+            });
+
+            // Second pass: handle any collision fallback steps sequentially
+            activePlayers.forEach((p) => {
+                if (!resolvedPlayerColors[p]) {
                     let replacementColor = backupColors.find(c => !trackingColorsUsed.has(c));
                     if (!replacementColor) {
                         replacementColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
                     }
-                    preferredColor = replacementColor;
+                    resolvedPlayerColors[p] = replacementColor;
+                    trackingColorsUsed.add(replacementColor);
                 }
-                resolvedPlayerColors[p] = preferredColor;
-                trackingColorsUsed.add(preferredColor);
             });
 
             // --- RESET TILE STYLING FIELDS ---
@@ -543,7 +556,7 @@
             Object.keys(tileOwnership).forEach(key => {
                 if (tileElements[key]) {
                     const ownerId = tileOwnership[key];
-                    const hexColor = resolvedPlayerColors[ownerId];
+                    const hexColor = resolvedPlayerColors[ownerId] || '#3b82f6';
                     tileElements[key].style.fill = hexColor;
                     tileElements[key].style.fillOpacity = "0.65";
                 }
@@ -559,7 +572,7 @@
                 if (currentTurnPlayer === playerId) {
                     document.getElementById('turn-indicator').innerHTML = `<span style="color: #2ecc71">YOUR TURN</span>`;
                 } else {
-                    const activeColor = resolvedPlayerColors[currentTurnPlayer];
+                    const activeColor = resolvedPlayerColors[currentTurnPlayer] || '#3b82f6';
                     document.getElementById('turn-indicator').innerHTML = `WAITING: <span class="player-badge" style="background-color: ${activeColor};">${currentTurnPlayer}</span>`;
                 }
             }
@@ -570,7 +583,7 @@
                 const count = Object.values(tileOwnership).filter(id => id === p).length;
                 const balance = playerPoints[p] !== undefined ? playerPoints[p] : 0;
                 const deadLabel = eliminatedPlayers.includes(p) ? ' 💀' : '';
-                const assignedColor = resolvedPlayerColors[p];
+                const assignedColor = resolvedPlayerColors[p] || '#3b82f6';
                 board.innerHTML += `
                     <div style="margin: 4px 0; display: flex; justify-content: space-between; align-items: center; font-size: 0.8em;">
                         <div>

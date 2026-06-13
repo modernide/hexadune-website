@@ -261,7 +261,6 @@
                 document.cookie = `hexadune_player_id=${encodeURIComponent(playerId)}; max-age=86400; path=/`;
         }
 
-        // Expanded fallback checking for player custom color settings
         const localSelectedColor = localStorage.getItem('hexadune_player_color') || getCookie('hexadune_player_color') || '#3b82f6';
 
         let currentCommandMode = 'MOVE'; 
@@ -272,6 +271,7 @@
         let latestServerState = null;
         let activeHoverTile = null; 
         let costFetchAbortController = null;
+        let hasDeployed = false; // Prevents premature baseline evaluation from showing the defeat layout
         const tooltip = document.getElementById('cost-tooltip');
 
         function setMode(mode) {
@@ -468,12 +468,10 @@
             const eliminatedPlayers = state.eliminatedPlayers || [];
             const serverPlayerColors = state.playerColors || {};
 
-            // Ensure our current chosen color is synced onto the state tracking maps if not present yet
             if (activePlayers.includes(playerId) && !serverPlayerColors[playerId]) {
                 serverPlayerColors[playerId] = localSelectedColor;
             }
 
-            // --- DETECT BOMB/MISSILE DETONATIONS GLOBALLY ---
             if (latestServerState && latestServerState.tileOwnership) {
                 const prevOwnership = latestServerState.tileOwnership;
                 Object.keys(prevOwnership).forEach(key => {
@@ -497,11 +495,13 @@
             const myPoints = playerPoints[playerId] !== undefined ? playerPoints[playerId] : 0;
             document.getElementById('currency-display').innerText = `${myPoints} UP`;
 
-            // --- EMANCIPATION/DEFEAT OVERLAY CHECK ---
-            if (eliminatedPlayers.includes(playerId) || myPoints <= 0) {
-                document.getElementById('loss-msg').innerText = "Your assets ran dry of Utility Points or you have been eliminated.";
-                document.getElementById('loss-screen').style.display = 'flex';
-                return;
+            // Wait until deployment connection finishes and ensure player is fully registered to prevent false bankrupcies
+            if (hasDeployed && activePlayers.includes(playerId)) {
+                if (eliminatedPlayers.includes(playerId) || (playerPoints[playerId] !== undefined && myPoints <= 0)) {
+                    document.getElementById('loss-msg').innerText = "Your assets ran dry of Utility Points or you have been eliminated.";
+                    document.getElementById('loss-screen').style.display = 'flex';
+                    return;
+                }
             }
 
             if (state.status && state.status.startsWith('won:')) {
@@ -514,12 +514,10 @@
                 }
             }
 
-            // --- COLOR COLLISION RESOLUTION ALGORITHM ---
             const backupColors = ['#ff4d4d', '#3399ff', '#00cc66', '#9933ff', '#f59e0b', '#ec4899'];
             const resolvedPlayerColors = {};
             const trackingColorsUsed = new Set();
 
-            // First pass: Assign preferences for active players prioritizing server configuration mapping maps
             activePlayers.forEach((p) => {
                 let preferredColor = p === playerId ? localSelectedColor : (serverPlayerColors[p] || '#3b82f6');
                 if (!trackingColorsUsed.has(preferredColor)) {
@@ -528,7 +526,6 @@
                 }
             });
 
-            // Second pass: handle any collision fallback steps sequentially
             activePlayers.forEach((p) => {
                 if (!resolvedPlayerColors[p]) {
                     let replacementColor = backupColors.find(c => !trackingColorsUsed.has(c));
@@ -540,7 +537,6 @@
                 }
             });
 
-            // --- RESET TILE STYLING FIELDS ---
             Object.keys(tileElements).forEach(key => {
                 if (mapData[key]) {
                     tileElements[key].style.fill = "";
@@ -552,7 +548,6 @@
                 }
             });
 
-            // --- INJECT CUSTOM MAP LAYER HEX STYLING ---
             Object.keys(tileOwnership).forEach(key => {
                 if (tileElements[key]) {
                     const ownerId = tileOwnership[key];
@@ -566,7 +561,6 @@
                 if(textElements[key]) textElements[key].textContent = '🛢️';
             });
 
-            // --- RENDER RECONCILED HUD METRICS ---
             if (turnOrder.length > 0) {
                 const currentTurnPlayer = turnOrder[currentTurnIndex];
                 if (currentTurnPlayer === playerId) {
@@ -596,7 +590,6 @@
             latestServerState = state;
         }
 
-        // --- RADIATING FIREWORK PARTICLE EXPLOSION (GLOBAL HELPER) ---
         function triggerGlobalExplosion(tileKey) {
             const [q, r] = tileKey.split(',').map(Number);
             const hexCenterX = HEX_SIZE * Math.sqrt(3) * (q + r / 2);
@@ -684,6 +677,7 @@
                 });
                 const data = await res.json();
                 if (data.success && data.gameState) {
+                    hasDeployed = true; // Mark registration ready so baseline verification works safely
                     updateWorldState(data.gameState);
                 }
             } catch(e) {
@@ -763,7 +757,7 @@
             if (!user) {
                 window.location.href = "./index.html"; 
             } else {
-                console.log("Welcome to Hexadune, " + user.displayName);
+                console.log("WELCOME TO HEXADUNE, " + user.displayName);
                 console.log(`\x1b[32m--- GAME RULES ---
                 \x1b[31m=TERRAIN=
                 1) SAND: STANDARD BUILDABLE/CAPTURABLE TERRAIN

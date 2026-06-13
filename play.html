@@ -261,7 +261,7 @@
                 document.cookie = `hexadune_player_id=${encodeURIComponent(playerId)}; max-age=86400; path=/`;
         }
 
-        // Accurately fall back to cookie strings if storage fields clear out mid-session
+        // Expanded fallback checking for player custom color settings
         const localSelectedColor = localStorage.getItem('hexadune_player_color') || getCookie('hexadune_player_color') || '#3b82f6';
 
         let currentCommandMode = 'MOVE'; 
@@ -790,7 +790,8 @@
                 INSTANTLY BOOTS YOU FROM THE GAME, YOUR TILES GO BACK TO DEFAULT
                 
                 \x1b[31m=TURN & ELIMINATION MECHANICS=
-                TURN ORDER: PLAY ROTATES IN "FIRST COME FIRST SERVE" ORDER, IE THE FIRST PLAYER TO JOIN GOES FIRST. \n                ACTIONS ARE STRICTLY RESTRICTED TO THE ACTIVE PLAYER'S TURN.
+                TURN ORDER: PLAY ROTATES IN "FIRST COME FIRST SERVE" ORDER, IE THE FIRST PLAYER TO JOIN GOES FIRST. 
+                ACTIONS ARE STRICTLY RESTRICTED TO THE ACTIVE PLAYER'S TURN.
 
                \x1b[32m=BANKRUPTCY & ELIMINATION=
                 AT THE START OF A PLAYER'S TURN, THE SYSTEM CALCULATES IF THEY CAN AFFORD TO PLAY

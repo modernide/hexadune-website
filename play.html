@@ -514,27 +514,10 @@
                 }
             }
 
-            const backupColors = ['#ff4d4d', '#3399ff', '#00cc66', '#9933ff', '#f59e0b', '#ec4899'];
+            // --- AUTHORITATIVE SYNCHRONIZED PLAYER COLORS ---
             const resolvedPlayerColors = {};
-            const trackingColorsUsed = new Set();
-
             activePlayers.forEach((p) => {
-                let preferredColor = p === playerId ? localSelectedColor : (serverPlayerColors[p] || '#3b82f6');
-                if (!trackingColorsUsed.has(preferredColor)) {
-                    resolvedPlayerColors[p] = preferredColor;
-                    trackingColorsUsed.add(preferredColor);
-                }
-            });
-
-            activePlayers.forEach((p) => {
-                if (!resolvedPlayerColors[p]) {
-                    let replacementColor = backupColors.find(c => !trackingColorsUsed.has(c));
-                    if (!replacementColor) {
-                        replacementColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
-                    }
-                    resolvedPlayerColors[p] = replacementColor;
-                    trackingColorsUsed.add(replacementColor);
-                }
+                resolvedPlayerColors[p] = serverPlayerColors[p] || '#3b82f6';
             });
 
             Object.keys(tileElements).forEach(key => {

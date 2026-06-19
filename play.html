@@ -220,6 +220,7 @@
                 <div class="action-sub-group">
                     <button id="mode-move" class="action-btn active-mode" onclick="setMode('MOVE')">Expand</button>
                     <button id="mode-well" class="action-btn" onclick="setMode('BUILD_OIL_WELL')">+ Oil Well<br/>(8 UP)</button>
+                    <button id="mode-shrine" class="action-btn" onclick="setMode('BUILD_SHRINE')">+ Shrine<br/>(75 UP)</button>
                     <button id="mode-bomb" class="action-btn" onclick="setMode('BOMB')">Bomb<br/>(50 UP)</button>
                     <button id="mode-missile" class="action-btn" onclick="setMode('MISSILE')">Missile<br/>(150 UP)</button>
                 </div>
@@ -271,13 +272,14 @@
         let latestServerState = null;
         let activeHoverTile = null; 
         let costFetchAbortController = null;
-        let hasDeployed = false; // Prevents premature baseline evaluation from showing the defeat layout
+        let hasDeployed = false; 
         const tooltip = document.getElementById('cost-tooltip');
 
         function setMode(mode) {
             currentCommandMode = mode;
             document.getElementById('mode-move').className = mode === 'MOVE' ? 'action-btn active-mode' : 'action-btn';
             document.getElementById('mode-well').className = mode === 'BUILD_OIL_WELL' ? 'action-btn active-mode' : 'action-btn';
+            document.getElementById('mode-shrine').className = mode === 'BUILD_SHRINE' ? 'action-btn active-mode' : 'action-btn';
             document.getElementById('mode-bomb').className = mode === 'BOMB' ? 'action-btn active-mode' : 'action-btn';
             document.getElementById('mode-missile').className = mode === 'MISSILE' ? 'action-btn active-mode' : 'action-btn';
             if (activeHoverTile) {
@@ -463,6 +465,7 @@
             const playerPoints = state.playerPoints || {};
             const tileOwnership = state.tileOwnership || {};
             const oilWells = state.oilWells || [];
+            const shrines = state.shrines || [];
             const turnOrder = state.turnOrder || [];
             const currentTurnIndex = state.currentTurnIndex !== undefined ? state.currentTurnIndex : 0;
             const eliminatedPlayers = state.eliminatedPlayers || [];
@@ -495,7 +498,6 @@
             const myPoints = playerPoints[playerId] !== undefined ? playerPoints[playerId] : 0;
             document.getElementById('currency-display').innerText = `${myPoints} UP`;
 
-            // Wait until deployment connection finishes and ensure player is fully registered to prevent false bankrupcies
             if (hasDeployed && activePlayers.includes(playerId)) {
                 if (eliminatedPlayers.includes(playerId) || (playerPoints[playerId] !== undefined && myPoints <= 0)) {
                     document.getElementById('loss-msg').innerText = "Your assets ran dry of Utility Points or you have been eliminated.";
@@ -514,20 +516,16 @@
                 }
             }
 
-            // --- AUTHORITATIVE SYNCHRONIZED PLAYER COLORS ---
-            // --- AUTHORITATIVE SYNCHRONIZED PLAYER COLORS ---
             const resolvedPlayerColors = {};
             const trackingColorsUsed = new Set();
             const backupColors = ['#ff4d4d', '#2ecc71', '#9933ff', '#f59e0b', '#ec4899', '#1abc9c'];
 
-            // 1. Give yourself your selected color first
             if (activePlayers.includes(playerId)) {
                 const myColor = (localSelectedColor || '#3b82f6').toLowerCase();
                 resolvedPlayerColors[playerId] = myColor;
                 trackingColorsUsed.add(myColor);
             }
 
-            // 2. Assign unique colors to opponents case-insensitively
             activePlayers.forEach((p) => {
                 if (p === playerId) return;
 
@@ -537,7 +535,6 @@
                     resolvedPlayerColors[p] = preferredColor;
                     trackingColorsUsed.add(preferredColor);
                 } else {
-                    // Collision found (or default blue is already taken by you/someone else) -> Assign a unique fallback
                     let replacementColor = backupColors.find(c => !trackingColorsUsed.has(c.toLowerCase()));
                     if (!replacementColor) {
                         replacementColor = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
@@ -569,6 +566,10 @@
 
             oilWells.forEach(key => {
                 if(textElements[key]) textElements[key].textContent = '🛢️';
+            });
+
+            shrines.forEach(key => {
+                if(textElements[key]) textElements[key].textContent = '🛕';
             });
 
             if (turnOrder.length > 0) {
@@ -687,7 +688,7 @@
                 });
                 const data = await res.json();
                 if (data.success && data.gameState) {
-                    hasDeployed = true; // Mark registration ready so baseline verification works safely
+                    hasDeployed = true; 
                     updateWorldState(data.gameState);
                 }
             } catch(e) {
@@ -794,6 +795,9 @@
                 \x1b[31mBUILD OIL WELL:
                 1) CAN ONLY BE BUILT ON A TILE ALREADY FULLY CONTROLLED BY THE PLAYER
                 2) COST: 8 UP. A TILE CAN ONLY HOST ONE WELL
+                \x1b[31mBUILD SHRINE:
+                1) CAN ONLY BE BUILT ON A TILE ALREADY FULLY CONTROLLED BY THE PLAYER
+                2) COST: 75 UP. FORTIFIES THE TILE TO COST ENEMIES 200 UP TO CAPTURE
                 BOMBS:
                 1) COST: 50 UP
                 2) CAN ONLY ATTACK A TILE OF ANOTHER PLAYER THAT IS TOUCHING YOUR OWN

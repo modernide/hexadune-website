@@ -515,9 +515,36 @@
             }
 
             // --- AUTHORITATIVE SYNCHRONIZED PLAYER COLORS ---
+            // --- AUTHORITATIVE SYNCHRONIZED PLAYER COLORS ---
             const resolvedPlayerColors = {};
+            const trackingColorsUsed = new Set();
+            const backupColors = ['#ff4d4d', '#2ecc71', '#9933ff', '#f59e0b', '#ec4899', '#1abc9c'];
+
+            // 1. Give yourself your selected color first
+            if (activePlayers.includes(playerId)) {
+                const myColor = (localSelectedColor || '#3b82f6').toLowerCase();
+                resolvedPlayerColors[playerId] = myColor;
+                trackingColorsUsed.add(myColor);
+            }
+
+            // 2. Assign unique colors to opponents case-insensitively
             activePlayers.forEach((p) => {
-                resolvedPlayerColors[p] = serverPlayerColors[p] || '#3b82f6';
+                if (p === playerId) return;
+
+                let preferredColor = (serverPlayerColors[p] || '#3b82f6').toLowerCase();
+
+                if (!trackingColorsUsed.has(preferredColor)) {
+                    resolvedPlayerColors[p] = preferredColor;
+                    trackingColorsUsed.add(preferredColor);
+                } else {
+                    // Collision found (or default blue is already taken by you/someone else) -> Assign a unique fallback
+                    let replacementColor = backupColors.find(c => !trackingColorsUsed.has(c.toLowerCase()));
+                    if (!replacementColor) {
+                        replacementColor = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+                    }
+                    resolvedPlayerColors[p] = replacementColor.toLowerCase();
+                    trackingColorsUsed.add(replacementColor.toLowerCase());
+                }
             });
 
             Object.keys(tileElements).forEach(key => {

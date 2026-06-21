@@ -24,6 +24,7 @@
             background: #24190e; padding: 30px; border-radius: 16px;
             box-shadow: 0 0 30px rgba(0,0,0,0.6); border: 3px solid #b88d54;
             max-width: 400px; width: 100%; box-sizing: border-box;
+            display: flex; flex-direction: column; align-items: center;
         }
 
         /* --- GAME OVERLAY INFRASTRUCTURE --- */
@@ -173,6 +174,13 @@
         .terrain-cactus { fill: #d2b48c; }
         .terrain-tower { fill: #e8cc9b; stroke: #8a6a3d; stroke-width: 4; }
         
+        /* Tactical preview outlines */
+        .missile-target-highlight {
+            stroke: #ff4d4d !important;
+            stroke-width: 4px !important;
+            stroke-dasharray: 4,4;
+        }
+
         .hex-text { font-size: 22px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
         
         .player-badge { display: inline-block; padding: 2px 6px; border-radius: 10px; font-weight: bold; color: white; font-size: 0.8em; }
@@ -187,6 +195,7 @@
         .modal-body {
             background: #24190e; padding: 30px; border-radius: 16px;
             box-shadow: 0 0 25px rgba(0,0,0,0.5); border: 4px solid #fff; max-width: 400px;
+            display: flex; flex-direction: column; align-items: center;
         }
 
         /* --- CURSOR FLOATING COST DISPLAY --- */
@@ -246,7 +255,7 @@
         <div class="join-body">
             <h1 style="font-size: 2.2em; color: #e1c699; margin: 0 0 10px 0; letter-spacing: 2px;">HEXADUNE</h1>
             <p style="font-size: 0.95em; margin: 0 0 25px 0; color: #ccc; line-height: 1.4;">Establish tactical territory deployments and manage resource footprint nodes across the map.</p>
-            <button id="join-action-btn" class="action-btn active-mode" style="font-size: 1.1em; padding: 12px 30px; width: auto; border-radius: 25px;" onclick="connectAndJoinSession()">DEPLOY INTO MAP</button>
+            <button id="join-action-btn" class="action-btn active-mode" style="font-size: 1.1em; padding: 12px 30px; width: auto; border-radius: 25px; flex: none; margin: 0 auto;" onclick="connectAndJoinSession()">DEPLOY INTO MAP</button>
         </div>
     </div>
 
@@ -254,7 +263,7 @@
         <div class="modal-body" style="border-color: #2ecc71;">
             <h1 style="font-size: 2.5em; color: #2ecc71; margin: 0 0 15px 0;">VICTORY</h1>
             <p style="font-size: 1.1em; margin: 0;" id="win-msg">You have conquered all there is to conquer. Congratulations.</p>
-            <button class="action-btn active-mode" style="margin-top: 25px; font-size: 1em; padding: 12px;" onclick="createNewLobby()">Join New Match Room</button>
+            <button class="action-btn active-mode" style="margin-top: 25px; font-size: 1em; padding: 12px 24px; flex: none; width: auto;" onclick="createNewLobby()">Join New Match Room</button>
         </div>
     </div>
 
@@ -262,7 +271,7 @@
         <div class="modal-body" style="border-color: #e74c3c;">
             <h1 style="font-size: 2.5em; color: #e74c3c; margin: 0 0 15px 0;">DEFEAT</h1>
             <p style="font-size: 1.1em; margin: 0;" id="loss-msg">You have been defeated.</p>
-            <button class="action-btn" style="margin-top: 25px; font-size: 1em; padding: 12px; background: #e74c3c; color: white; border: none;" onclick="createNewLobby()">Return to Main Lobby</button>
+            <button class="action-btn" style="margin-top: 25px; font-size: 1em; padding: 12px 24px; background: #e74c3c; color: white; border: none; flex: none; width: auto;" onclick="createNewLobby()">Return to Main Lobby</button>
         </div>
     </div>
 
@@ -356,6 +365,7 @@
         let activeHoverTile = null; 
         let costFetchAbortController = null;
         let hasDeployed = false; 
+        let highlightedMissileKeys = [];
         const tooltip = document.getElementById('cost-tooltip');
 
         function setMode(mode) {
@@ -365,8 +375,13 @@
             document.getElementById('mode-shrine').className = mode === 'BUILD_SHRINE' ? 'action-btn active-mode' : 'action-btn';
             document.getElementById('mode-bomb').className = mode === 'BOMB' ? 'action-btn active-mode' : 'action-btn';
             document.getElementById('mode-missile').className = mode === 'MISSILE' ? 'action-btn active-mode' : 'action-btn';
+            
+            clearMissilePreviewHighlights();
             if (activeHoverTile) {
                 triggerServerCostEvaluation(activeHoverTile.q, activeHoverTile.r, activeHoverTile.type);
+                if (currentCommandMode === 'MISSILE') {
+                    applyMissilePreviewHighlights(activeHoverTile.q, activeHoverTile.r);
+                }
             }
         }
 
@@ -393,6 +408,35 @@
                 { q: q - 1, r: r + 1 }, 
                 { q: q, r: r + 1 }  
             ];
+        }
+
+        function clearMissilePreviewHighlights() {
+            highlightedMissileKeys.forEach(key => {
+                if (tileElements[key]) {
+                    tileElements[key].classList.remove('missile-target-highlight');
+                }
+            });
+            highlightedMissileKeys = [];
+        }
+
+        function applyMissilePreviewHighlights(q, r) {
+            clearMissilePreviewHighlights();
+            const centerKey = `${q},${r}`;
+            const affected = [centerKey];
+            
+            const neighbors = getNeighbors(q, r);
+            const validNeighbors = neighbors.filter(n => latestServerState && latestServerState.validTiles && latestServerState.validTiles[`${n.q},${n.r}`]);
+            
+            for (let i = 0; i < Math.min(2, validNeighbors.length); i++) {
+                affected.push(`${validNeighbors[i].q},${validNeighbors[i].r}`);
+            }
+
+            affected.forEach(key => {
+                if (tileElements[key]) {
+                    tileElements[key].classList.add('missile-target-highlight');
+                    highlightedMissileKeys.push(key);
+                }
+            });
         }
 
         async function triggerServerCostEvaluation(q, r, type) {
@@ -448,6 +492,9 @@
                     activeHoverTile = { q, r, type: cell.type };
                     tooltip.style.display = 'block';
                     triggerServerCostEvaluation(q, r, cell.type);
+                    if (currentCommandMode === 'MISSILE') {
+                        applyMissilePreviewHighlights(q, r);
+                    }
                 });
                 group.addEventListener('mousemove', (e) => {
                     tooltip.style.left = e.clientX + 'px';
@@ -456,6 +503,7 @@
                 group.addEventListener('mouseleave', () => {
                     activeHoverTile = null;
                     tooltip.style.display = 'none';
+                    clearMissilePreviewHighlights();
                     if (costFetchAbortController) {
                         costFetchAbortController.abort();
                         costFetchAbortController = null;
@@ -526,6 +574,9 @@
                     
                     if (activeHoverTile) {
                         triggerServerCostEvaluation(activeHoverTile.q, activeHoverTile.r, activeHoverTile.type);
+                        if (currentCommandMode === 'MISSILE') {
+                            applyMissilePreviewHighlights(activeHoverTile.q, activeHoverTile.r);
+                        }
                     }
                 }
             } catch (err) {
@@ -667,6 +718,8 @@
                 }
             });
 
+            const savedHighlights = [...highlightedMissileKeys];
+
             Object.keys(tileElements).forEach(key => {
                 if (mapData[key]) {
                     tileElements[key].style.fill = "";
@@ -693,6 +746,10 @@
 
             shrines.forEach(key => {
                 if(textElements[key]) textElements[key].textContent = '🛕';
+            });
+
+            savedHighlights.forEach(key => {
+                if (tileElements[key]) tileElements[key].classList.add('missile-target-highlight');
             });
 
             if (turnOrder.length > 0) {

@@ -411,8 +411,23 @@
             let targetAction = currentCommandMode;
             if (targetAction === 'MOVE' && type === 'tower') targetAction = 'CONQUER_TOWER';
 
-            document.getElementById('status-log').innerText = "Processing vectors...";
+            document.getElementById('status-log').innerText = "Evaluating cost metrics...";
             try {
+                // Pre-evaluate the action's cost from the server before processing
+                const costResponse = await fetch(`${API_URL}/games/${gameId}/cost?playerId=${playerId}&q=${q}&r=${r}&mode=${currentCommandMode}`);
+                const costData = await costResponse.json();
+                
+                if (costData.success) {
+                    const actionCost = costData.cost;
+                    const currentPoints = (latestServerState && latestServerState.playerPoints && latestServerState.playerPoints[playerId]) || 0;
+                    
+                    if (currentPoints < actionCost) {
+                        document.getElementById('status-log').innerText = `🚫 Blocked: Action costs ${actionCost} UP. Current balance is ${currentPoints} UP (Bankruptcy Prevention).`;
+                        return;
+                    }
+                }
+
+                document.getElementById('status-log').innerText = "Processing vectors...";
                 const res = await fetch(`${API_URL}/actions`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

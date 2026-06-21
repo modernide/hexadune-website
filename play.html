@@ -366,6 +366,7 @@
         let costFetchAbortController = null;
         let hasDeployed = false; 
         let highlightedMissileKeys = [];
+        let previousActivePlayerTurn = null;
         const tooltip = document.getElementById('cost-tooltip');
 
         function setMode(mode) {
@@ -755,6 +756,12 @@
             if (turnOrder.length > 0) {
                 const currentTurnPlayer = turnOrder[currentTurnIndex];
                 const isMyTurn = currentTurnPlayer === playerId;
+
+                // AUTOMATIC MODE RESET: Turn just transitioned to you
+                if (currentTurnPlayer !== previousActivePlayerTurn && isMyTurn) {
+                    setMode('MOVE');
+                }
+                previousActivePlayerTurn = currentTurnPlayer;
 
                 if (isMyTurn) {
                     document.getElementById('turn-indicator').innerHTML = `<span style="color: #2ecc71">YOUR TURN</span>`;

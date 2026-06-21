@@ -66,18 +66,20 @@
         }
 
         .command-container {
-            background: rgba(40, 26, 13, 0.9); border: 2px solid #b88d54;
-            border-radius: 14px; padding: 8px; width: 100%; max-width: 650px;
-            box-shadow: 0 -4px 15px rgba(0,0,0,0.4); display: flex; gap: 8px;
-            box-sizing: border-box; backdrop-filter: blur(5px); align-items: center;
+            background: linear-gradient(180deg, rgba(50, 34, 18, 0.95) 0%, rgba(30, 20, 10, 0.95) 100%);
+            border: 2px solid #b88d54;
+            border-radius: 12px; padding: 10px; width: 100%; max-width: 720px;
+            box-shadow: 0 -8px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1); 
+            display: flex; gap: 10px;
+            box-sizing: border-box; backdrop-filter: blur(6px); align-items: stretch;
         }
 
         .action-sub-group {
-            display: flex; gap: 8px; flex: 3;
+            display: flex; gap: 6px; flex: 4;
         }
 
         .danger-sub-group {
-            display: flex; flex: 1; border-left: 2px solid #5c4322; padding-left: 8px;
+            display: flex; flex: 2; border-left: 2px dashed #5c4322; padding-left: 10px; gap: 6px;
         }
 
         #status-log {
@@ -86,24 +88,77 @@
             min-height: 1.2em; text-align: center; max-width: 90%; pointer-events: none;
         }
 
-        /* --- BUTTON & ACTION SYSTEM --- */
+        /* --- GAMIFIED BUTTON SYSTEM --- */
         .action-btn {
-            flex: 1; padding: 12px 6px; font-weight: bold; font-size: 0.85em;
-            border: 2px solid #8a6a3d; border-radius: 8px; cursor: pointer;
-            background: #fff; color: #3e2d1c; transition: all 0.2s;
-            text-transform: uppercase; letter-spacing: 0.5px;
-            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
+            flex: 1; padding: 10px 4px; font-weight: 800; font-size: 0.8em;
+            border: 2px solid #5c4322; border-radius: 6px; cursor: pointer;
+            background: linear-gradient(180deg, #4a351f 0%, #2b1f12 100%); 
+            color: #e1c699; transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase; letter-spacing: 0.7px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; line-height: 1.2;
         }
-        .action-btn:active { transform: scale(0.97); }
-        .active-mode { background: #b88d54 !important; color: white !important; border-color: #e1c699 !important; }
+        .action-btn:hover:not(:disabled) {
+            background: linear-gradient(180deg, #5c4322 0%, #3a2a18 100%);
+            color: #fff; border-color: #8a6a3d;
+        }
+        .action-btn:active:not(:disabled) { 
+            transform: translateY(1px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.6);
+        }
+        
+        .active-mode { 
+            background: linear-gradient(180deg, #b88d54 0%, #8a6a3d 100%) !important; 
+            color: #ffffff !important; 
+            border-color: #e1c699 !important; 
+            box-shadow: 0 0 10px rgba(184, 141, 84, 0.5), inset 0 1px 1px rgba(255,255,255,0.2) !important;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
 
-        .danger-btn { background: #b23b3b !important; color: #fff !important; border-color: #5c1a1a !important; }
-        .danger-btn:hover { background: #d34848 !important; border-color: #b23b3b !important; }
+        .danger-btn { 
+            background: linear-gradient(180deg, #7c2525 0%, #4a1515 100%) !important; 
+            color: #ffcccc !important; 
+            border-color: #993333 !important; 
+        }
+        .danger-btn:hover:not(:disabled) { 
+            background: linear-gradient(180deg, #993333 0%, #5c1a1a 100%) !important; 
+            color: #fff !important;
+            border-color: #ff4d4d !important;
+        }
 
-        .endturn-btn { background: #2ecc71 !important; color: #fff !important; border-color: #1e8449 !important; }
-        .endturn-btn:hover { background: #3ee787 !important; border-color: #2ecc71 !important; }
-        .endturn-btn:disabled { background: #555 !important; border-color: #444 !important; color: #999 !important; cursor: not-allowed; opacity: 0.6; }
-        .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .endturn-btn { 
+            background: linear-gradient(180deg, #1e7e34 0%, #114f20 100%) !important; 
+            color: #ccffdd !important; 
+            border-color: #28a745 !important; 
+        }
+        .endturn-btn:hover:not(:disabled) { 
+            background: linear-gradient(180deg, #28a745 0%, #19692c 100%) !important; 
+            color: #fff !important;
+            border-color: #34ce57 !important;
+            box-shadow: 0 0 8px rgba(40, 167, 69, 0.4);
+        }
+        
+        .action-btn:disabled { 
+            opacity: 0.25; 
+            cursor: not-allowed; 
+            background: #22180f !important; 
+            color: #554433 !important; 
+            border-color: #332211 !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        .btn-cost-tag {
+            font-size: 0.75em;
+            opacity: 0.7;
+            font-weight: 600;
+            margin-top: 2px;
+            letter-spacing: 0.3px;
+        }
+        .action-btn:hover .btn-cost-tag {
+            opacity: 1;
+        }
 
         /* --- MAP FRAMEWORK --- */
         #game-window { width: 100%; height: 100%; cursor: grab; }
@@ -173,8 +228,11 @@
         @media (max-width: 600px) {
             .hud-card { font-size: 0.75em; padding: 6px 10px; }
             #leaderboard { display: none; }
-            .action-btn { font-size: 0.75em; padding: 10px 4px; }
+            .action-btn { font-size: 0.7em; padding: 8px 2px; letter-spacing: 0.3px; }
+            .btn-cost-tag { font-size: 0.7em; }
             #status-log { font-size: 0.75em; }
+            .command-container { padding: 6px; gap: 6px; }
+            .danger-sub-group { padding-left: 6px; gap: 4px; }
         }
     </style>
 </head>
@@ -223,15 +281,34 @@
             <p id="status-log"></p>
             <div class="command-container">
                 <div class="action-sub-group">
-                    <button id="mode-move" class="action-btn active-mode" onclick="setMode('MOVE')">Expand</button>
-                    <button id="mode-well" class="action-btn" onclick="setMode('BUILD_OIL_WELL')">+ Oil Well<br/>(8 UP)</button>
-                    <button id="mode-shrine" class="action-btn" onclick="setMode('BUILD_SHRINE')">+ Shrine<br/>(75 UP)</button>
-                    <button id="mode-bomb" class="action-btn" onclick="setMode('BOMB')">Bomb<br/>(50 UP)</button>
-                    <button id="mode-missile" class="action-btn" onclick="setMode('MISSILE')">Missile<br/>(150 UP)</button>
+                    <button id="mode-move" class="action-btn active-mode" onclick="setMode('MOVE')">
+                        <span>Expand</span>
+                        <span class="btn-cost-tag" id="mode-move-count">[0/3]</span>
+                    </button>
+                    <button id="mode-well" class="action-btn" onclick="setMode('BUILD_OIL_WELL')">
+                        <span>+ Well</span>
+                        <span class="btn-cost-tag">8 UP</span>
+                    </button>
+                    <button id="mode-shrine" class="action-btn" onclick="setMode('BUILD_SHRINE')">
+                        <span>+ Shrine</span>
+                        <span class="btn-cost-tag">75 UP</span>
+                    </button>
+                    <button id="mode-bomb" class="action-btn" onclick="setMode('BOMB')">
+                        <span>Bomb</span>
+                        <span class="btn-cost-tag">50 UP</span>
+                    </button>
+                    <button id="mode-missile" class="action-btn" onclick="setMode('MISSILE')">
+                        <span>Missile</span>
+                        <span class="btn-cost-tag">150 UP</span>
+                    </button>
                 </div>
                 <div class="danger-sub-group">
-                    <button id="action-end-turn" class="action-btn endturn-btn" onclick="triggerEndTurnSequence()">End Turn</button>
-                    <button id="action-forfeit" class="action-btn danger-btn" onclick="triggerForfeitSequence()">FORFEIT</button>
+                    <button id="action-end-turn" class="action-btn endturn-btn" onclick="triggerEndTurnSequence()">
+                        <span>End Turn</span>
+                    </button>
+                    <button id="action-forfeit" class="action-btn danger-btn" onclick="triggerForfeitSequence()">
+                        <span>Forfeit</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -413,7 +490,6 @@
 
             document.getElementById('status-log').innerText = "Evaluating cost metrics...";
             try {
-                // Pre-evaluate the action's cost from the server before processing
                 const costResponse = await fetch(`${API_URL}/games/${gameId}/cost?playerId=${playerId}&q=${q}&r=${r}&mode=${currentCommandMode}`);
                 const costData = await costResponse.json();
                 
@@ -630,9 +706,6 @@
                     document.getElementById('turn-indicator').innerHTML = `WAITING: <span class="player-badge" style="background-color: ${activeColor};">${currentTurnPlayer}</span>`;
                 }
 
-                // End Turn is only usable on your turn. Tile placements (MOVE/CONQUER_TOWER) and oil wells each have
-                // their own per-turn cap and don't consume each other; BUILD_SHRINE/BOMB/MISSILE remain a one-time
-                // primary move for the turn.
                 const modeDisabled = {
                     MOVE: !isMyTurn || tilesPlacedThisTurn >= maxTilePlacementsPerTurn,
                     BUILD_OIL_WELL: !isMyTurn || oilWellsThisTurn >= maxOilWellsPerTurn,
@@ -643,9 +716,11 @@
 
                 document.getElementById('action-end-turn').disabled = !isMyTurn;
                 document.getElementById('mode-move').disabled = modeDisabled.MOVE;
-                document.getElementById('mode-move').innerHTML = `Expand [${tilesPlacedThisTurn}/${maxTilePlacementsPerTurn}]`;
+                document.getElementById('mode-move-count').innerText = `[${tilesPlacedThisTurn}/${maxTilePlacementsPerTurn}]`;
+                
                 document.getElementById('mode-well').disabled = modeDisabled.BUILD_OIL_WELL;
-                document.getElementById('mode-well').innerHTML = `+ Oil Well<br/>(8 UP) [${oilWellsThisTurn}/${maxOilWellsPerTurn}]`;
+                document.getElementById('mode-well').querySelector('.btn-cost-tag').innerText = `8 UP [${oilWellsThisTurn}/${maxOilWellsPerTurn}]`;
+                
                 document.getElementById('mode-shrine').disabled = modeDisabled.BUILD_SHRINE;
                 document.getElementById('mode-bomb').disabled = modeDisabled.BOMB;
                 document.getElementById('mode-missile').disabled = modeDisabled.MISSILE;
@@ -843,64 +918,6 @@
                 window.location.href = "./index.html"; 
             } else {
                 console.log("WELCOME TO HEXADUNE, " + user.displayName);
-                console.log(`\x1b[32m--- GAME RULES ---
-                \x1b[31m=TERRAIN=
-                1) SAND: STANDARD BUILDABLE/CAPTURABLE TERRAIN
-                2) CACTUS: IMPASSABLE TERRAIN, CANNOT OCCUPY OR BUILD
-                3) TOWERS: CONQUERING CAPTURES ALL ITS ADJACENT SAND TILES AUTOMATICALLY
-                THE TERRAIN LAYOUT IS GENERATED DETERMINISTICALLY BASED ON COORDINATES AND THE GAMEID, SO ALL PLAYERS SEE THE SAME MAP
-                
-                \x1b[32m=ECONOMY AND INCOME=
-                UTILITY POINTS: THE CURRENCY USED FOR ALL ACTIONS. PLAYERS START WITH 12 UP UPON JOINING
-                INCOME TICKS: AT THE END OF EVERY TURN, INCOME IS CALCULATED AND ADDED TO THE NEXT PLAYER'S BALANCE
-                STANDARD OWNED TILE: +1 UP PER TURN
-                OIL WELL TILE: +4 UP PER TICK
-                
-                \x1b[31m=ACTIONS & COSTS=
-                SPAWNING / MOVEMENT RULES:
-                1) PLAYERS DROP ONTO DESIGNATED SPAWN SPOTS
-                2) SUBSEQUENT MOVES/EXPANSIONS MUST BE ADJACENT TO AN ALREADY OWNED TILE. NON-ADJACENT MOVES ARE BLOCKED AS 'ISOLATED'
-                3) UP TO 3 TILES CAN BE PLACED (MOVED/CONQUERED) PER TURN, AND DOING SO DOES NOT END YOUR TURN
-                \x1b[32mCAPTURE COSTS:
-                1) UNOCCUPIED TILE: 2 UP
-                2) ENEMY-CONTROLLED TILE: 4 UP
-                3) TILE ADJACENT TO A TOWER (WHEN CAPTURING FROM AN ENEMY): +3 UP SURCHARGE
-                4) CONTESTED/PREVIOUSLY CAPTURED TILE: COST SCALES EXPONENTIALLY AS COST DOUBLES EVERY TIME IT IS CLAIMED
-                5) OWNED TILE (MOVING ONTO SELF): 0 UP
-                \x1b[31mBUILD OIL WELL:
-                1) CAN ONLY BE BUILT ON A TILE ALREADY FULLY CONTROLLED BY THE PLAYER
-                2) COST: 8 UP. A TILE CAN ONLY HOST ONE WELL
-                3) UP TO 3 OIL WELLS CAN BE BUILT PER TURN, AND DOING SO DOES NOT END YOUR TURN
-                \x1b[31mBUILD SHRINE:
-                1) CAN ONLY BE BUILT ON A TILE ALREADY FULLY CONTROLLED BY THE PLAYER
-                2) COST: 75 UP. FORTIFIES THE TILE TO COST ENEMIES 200 UP TO CAPTURE
-                BOMBS:
-                1) COST: 50 UP
-                2) CAN ONLY ATTACK A TILE OF ANOTHER PLAYER THAT IS TOUCHING YOUR OWN
-                3) RESETS TILE COST AND OWNERSHIP
-                MISSILES:
-                1) COST: 150 UP
-                2) RESETS TILE COST AND OWNERSHIP
-                3) CAN ATTACK ANY TILE ON THE MAP
-                
-                \x1b[32m=FORFEITTING=
-                INSTANTLY BOOTS YOU FROM THE GAME, YOUR TILES GO BACK TO DEFAULT
-                
-                \x1b[31m=TURN & ELIMINATION MECHANICS=
-                TURN ORDER: PLAY ROTATES IN "FIRST COME FIRST SERVE" ORDER, IE THE FIRST PLAYER TO JOIN GOES FIRST. 
-                ACTIONS ARE STRICTLY RESTRICTED TO THE ACTIVE PLAYER'S TURN.
-                EACH TURN YOU GET UP TO 3 TILE PLACEMENTS (MOVE/CONQUER), UP TO 3 OIL WELLS, AND ONE SHRINE/BOMB/MISSILE, IN ANY ORDER.
-                YOUR TURN DOES NOT END AUTOMATICALLY - TAP "END TURN" WHEN YOU ARE DONE TO PASS PLAY TO THE NEXT PLAYER.
-
-               \x1b[32m=BANKRUPTCY & ELIMINATION=
-                AT THE START OF A PLAYER'S TURN, THE SYSTEM CALCULATES IF THEY CAN AFFORD TO PLAY
-                IF A PLAYER OWNS 0 TILES, OR THEIR ENDING BALANCE (CURRENT POINTS + EXPECTED INCOME) FALLS BELOW THE BASE_CAPTURE_COST (2 UP), THEY ARE DECLARED BANKRUPT
-                BANKRUPT PLAYERS ARE ELIMINATED AND ALL THEIR OWNED TILES ARE CLEARED
-
-                \x1b[31m=WIN CONDITIONS=
-                A MATCH IMMEDIATELY ENDS IN A VICTORY IF:
-                1) TERRITORIAL DOMINANCE: A SINGLE PLAYER CONTROLS MORE THAN 50% OF THE TOTAL MAINLAND LANDMASS TILES
-                2) ELIMINATION: ALL OTHER PLAYERS ARE ELIMINATED AND ONLY ONE ACTIVE PLAYER REMAINS`)
             }
         });
     </script>

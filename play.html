@@ -100,6 +100,11 @@
         .danger-btn { background: #b23b3b !important; color: #fff !important; border-color: #5c1a1a !important; }
         .danger-btn:hover { background: #d34848 !important; border-color: #b23b3b !important; }
 
+        .endturn-btn { background: #2ecc71 !important; color: #fff !important; border-color: #1e8449 !important; }
+        .endturn-btn:hover { background: #3ee787 !important; border-color: #2ecc71 !important; }
+        .endturn-btn:disabled { background: #555 !important; border-color: #444 !important; color: #999 !important; cursor: not-allowed; opacity: 0.6; }
+        .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
         /* --- MAP FRAMEWORK --- */
         #game-window { width: 100%; height: 100%; cursor: grab; }
         #game-window:active { cursor: grabbing; }
@@ -225,6 +230,7 @@
                     <button id="mode-missile" class="action-btn" onclick="setMode('MISSILE')">Missile<br/>(150 UP)</button>
                 </div>
                 <div class="danger-sub-group">
+                    <button id="action-end-turn" class="action-btn endturn-btn" onclick="triggerEndTurnSequence()">End Turn</button>
                     <button id="action-forfeit" class="action-btn danger-btn" onclick="triggerForfeitSequence()">FORFEIT</button>
                 </div>
             </div>
@@ -436,6 +442,27 @@
             }
         }
 
+        async function triggerEndTurnSequence() {
+            document.getElementById('status-log').innerText = "Closing out turn...";
+            try {
+                const res = await fetch(`${API_URL}/actions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameId, playerId, action: 'END_TURN' }),
+                });
+                const data = await res.json();
+
+                if (!res.ok || !data.success) {
+                    document.getElementById('status-log').innerText = `🚫 ${data.error || 'Server validation rejection.'}`;
+                } else {
+                    document.getElementById('status-log').innerText = `✅ Turn ended.`;
+                    updateWorldState(data.gameState);
+                }
+            } catch (err) {
+                document.getElementById('status-log').innerText = "Server communication link fault.";
+            }
+        }
+
         async function triggerForfeitSequence() {
             if (!confirm("Are you sure you want to forfeit this simulation match?")) return;
 
@@ -470,6 +497,11 @@
             const currentTurnIndex = state.currentTurnIndex !== undefined ? state.currentTurnIndex : 0;
             const eliminatedPlayers = state.eliminatedPlayers || [];
             const serverPlayerColors = state.playerColors || {};
+            const mainActionTaken = state.mainActionTaken || false;
+            const oilWellsThisTurn = state.oilWellsThisTurn || 0;
+            const maxOilWellsPerTurn = state.maxOilWellsPerTurn || 3;
+            const tilesPlacedThisTurn = state.tilesPlacedThisTurn || 0;
+            const maxTilePlacementsPerTurn = state.maxTilePlacementsPerTurn || 3;
 
             if (activePlayers.includes(playerId) && !serverPlayerColors[playerId]) {
                 serverPlayerColors[playerId] = localSelectedColor;
@@ -574,11 +606,38 @@
 
             if (turnOrder.length > 0) {
                 const currentTurnPlayer = turnOrder[currentTurnIndex];
-                if (currentTurnPlayer === playerId) {
+                const isMyTurn = currentTurnPlayer === playerId;
+
+                if (isMyTurn) {
                     document.getElementById('turn-indicator').innerHTML = `<span style="color: #2ecc71">YOUR TURN</span>`;
                 } else {
                     const activeColor = resolvedPlayerColors[currentTurnPlayer] || '#3b82f6';
                     document.getElementById('turn-indicator').innerHTML = `WAITING: <span class="player-badge" style="background-color: ${activeColor};">${currentTurnPlayer}</span>`;
+                }
+
+                // End Turn is only usable on your turn. Tile placements (MOVE/CONQUER_TOWER) and oil wells each have
+                // their own per-turn cap and don't consume each other; BUILD_SHRINE/BOMB/MISSILE remain a one-time
+                // primary move for the turn.
+                const modeDisabled = {
+                    MOVE: !isMyTurn || tilesPlacedThisTurn >= maxTilePlacementsPerTurn,
+                    BUILD_OIL_WELL: !isMyTurn || oilWellsThisTurn >= maxOilWellsPerTurn,
+                    BUILD_SHRINE: !isMyTurn || mainActionTaken,
+                    BOMB: !isMyTurn || mainActionTaken,
+                    MISSILE: !isMyTurn || mainActionTaken,
+                };
+
+                document.getElementById('action-end-turn').disabled = !isMyTurn;
+                document.getElementById('mode-move').disabled = modeDisabled.MOVE;
+                document.getElementById('mode-move').innerHTML = `Expand [${tilesPlacedThisTurn}/${maxTilePlacementsPerTurn}]`;
+                document.getElementById('mode-well').disabled = modeDisabled.BUILD_OIL_WELL;
+                document.getElementById('mode-well').innerHTML = `+ Oil Well<br/>(8 UP) [${oilWellsThisTurn}/${maxOilWellsPerTurn}]`;
+                document.getElementById('mode-shrine').disabled = modeDisabled.BUILD_SHRINE;
+                document.getElementById('mode-bomb').disabled = modeDisabled.BOMB;
+                document.getElementById('mode-missile').disabled = modeDisabled.MISSILE;
+
+                if (isMyTurn && modeDisabled[currentCommandMode]) {
+                    const fallbackMode = ['MOVE', 'BUILD_OIL_WELL', 'BUILD_SHRINE', 'BOMB', 'MISSILE'].find(m => !modeDisabled[m]);
+                    if (fallbackMode) setMode(fallbackMode);
                 }
             }
 
@@ -786,6 +845,7 @@
                 SPAWNING / MOVEMENT RULES:
                 1) PLAYERS DROP ONTO DESIGNATED SPAWN SPOTS
                 2) SUBSEQUENT MOVES/EXPANSIONS MUST BE ADJACENT TO AN ALREADY OWNED TILE. NON-ADJACENT MOVES ARE BLOCKED AS 'ISOLATED'
+                3) UP TO 3 TILES CAN BE PLACED (MOVED/CONQUERED) PER TURN, AND DOING SO DOES NOT END YOUR TURN
                 \x1b[32mCAPTURE COSTS:
                 1) UNOCCUPIED TILE: 2 UP
                 2) ENEMY-CONTROLLED TILE: 4 UP
@@ -795,6 +855,7 @@
                 \x1b[31mBUILD OIL WELL:
                 1) CAN ONLY BE BUILT ON A TILE ALREADY FULLY CONTROLLED BY THE PLAYER
                 2) COST: 8 UP. A TILE CAN ONLY HOST ONE WELL
+                3) UP TO 3 OIL WELLS CAN BE BUILT PER TURN, AND DOING SO DOES NOT END YOUR TURN
                 \x1b[31mBUILD SHRINE:
                 1) CAN ONLY BE BUILT ON A TILE ALREADY FULLY CONTROLLED BY THE PLAYER
                 2) COST: 75 UP. FORTIFIES THE TILE TO COST ENEMIES 200 UP TO CAPTURE
@@ -813,6 +874,8 @@
                 \x1b[31m=TURN & ELIMINATION MECHANICS=
                 TURN ORDER: PLAY ROTATES IN "FIRST COME FIRST SERVE" ORDER, IE THE FIRST PLAYER TO JOIN GOES FIRST. 
                 ACTIONS ARE STRICTLY RESTRICTED TO THE ACTIVE PLAYER'S TURN.
+                EACH TURN YOU GET UP TO 3 TILE PLACEMENTS (MOVE/CONQUER), UP TO 3 OIL WELLS, AND ONE SHRINE/BOMB/MISSILE, IN ANY ORDER.
+                YOUR TURN DOES NOT END AUTOMATICALLY - TAP "END TURN" WHEN YOU ARE DONE TO PASS PLAY TO THE NEXT PLAYER.
 
                \x1b[32m=BANKRUPTCY & ELIMINATION=
                 AT THE START OF A PLAYER'S TURN, THE SYSTEM CALCULATES IF THEY CAN AFFORD TO PLAY

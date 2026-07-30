@@ -317,9 +317,7 @@
         const HEX_SIZE = 45;
         const MAP_RADIUS = 17; 
 
-        const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-            ? 'http://localhost:3000/v1' 
-            : 'https://hexadune.onrender.com/v1';
+        const API_URL = 'https://us-central1-hexadune.cloudfunctions.net/api/v1';
 
         // Helper to securely parse a targeted cookie value
         function getCookie(name) {
